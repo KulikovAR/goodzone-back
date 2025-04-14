@@ -1,0 +1,55 @@
+version: '3.7'
+services:
+  app:
+    build:
+      args:
+        user: sammy
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    image: example
+    container_name: example-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    networks:
+      - proxy
+
+  db:
+    platform: linux/x86_64 #macOS
+    image: mysql:5.7
+    container_name: example-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+#      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - proxy
+
+  nginx:
+    image: nginx:alpine
+    container_name: example-nginx
+    restart: unless-stopped
+    expose:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d/
+    networks:
+      - proxy
+    environment:
+      - VIRTUAL_HOST=${EXAMPLE_HOSTNAME}
+      - LETSENCRYPT_HOST=${EXAMPLE_HOSTNAME}
+      - LETSENCRYPT_EMAIL=${EXAMPLE_EMAIL}
+
+networks:
+  proxy:
+    external: true
