@@ -2,36 +2,58 @@
 
 namespace App\Http\Controllers;
 
-use App\Contracts\AuthServiceContract;
-use App\Http\Requests\Auth\LoginRequest;
-use App\Http\Requests\Auth\RefreshRequest;
-use App\Http\Requests\Auth\VerifyRequest;
-use App\Http\Responses\ApiJsonResponse;
-use Illuminate\Http\Request;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\CheckRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Services\VerificationService;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 
 class AuthController extends Controller
 {
-    public function __construct(protected AuthServiceContract $service) {}
+    public function __construct(
+        private VerificationService $verificationService
+    ) {}
 
-    public function login(LoginRequest $request): ApiJsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        return $this->service->login($request);
+        $code = $this->verificationService->generateCode($request->phone);
+        
+        // Here would be SMS service integration
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Код отправлен на телефон'
+        ]);
     }
 
-    public function verify(VerifyRequest $request): ApiJsonResponse
+    public function check(CheckRequest $request): JsonResponse
     {
-        return $this->service->verify($request);
+        $isValid = $this->verificationService->verifyCode(
+            $request->phone,
+            $request->code
+        );
+
+        if (!$isValid) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Неверный код'
+            ], 422);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Вход прошел успешно'
+        ]);
     }
 
-    public function refresh(RefreshRequest $request): ApiJsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        return $this->service->refresh($request);
-    }
-
-    public function logout(Request $request): ApiJsonResponse
-    {
-        $this->service->logout($request->user());
-
-        return new ApiJsonResponse;
+        // Here would be 1C integration
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Регистрация успешна'
+        ]);
     }
 }

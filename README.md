@@ -1,4 +1,4 @@
-# Example App
+# Goodzone Backend
 
 - demo: https://example-app.pisateli-studio/
 
