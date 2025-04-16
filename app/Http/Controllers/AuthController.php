@@ -3,11 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
-use App\Http\Requests\CheckRequest;
-use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\VerifyRequest;
+use App\Http\Responses\ApiJsonResponse;
 use App\Services\VerificationService;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
 
 class AuthController extends Controller
 {
@@ -15,19 +14,25 @@ class AuthController extends Controller
         private VerificationService $verificationService
     ) {}
 
-    public function login(LoginRequest $request): JsonResponse
+    public function login(LoginRequest $request): ApiJsonResponse
     {
+        $user = User::firstOrCreate(
+            ['phone' => $request->phone]
+        );
+
         $code = $this->verificationService->generateCode($request->phone);
+        
+        $user->code_send_at = now();
+        $user->save();
         
         // Here would be SMS service integration
         
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Код отправлен на телефон'
-        ]);
+        return new ApiJsonResponse(
+            message: 'Код отправлен на телефон'
+        );
     }
 
-    public function check(CheckRequest $request): JsonResponse
+    public function verify(VerifyRequest $request): ApiJsonResponse
     {
         $isValid = $this->verificationService->verifyCode(
             $request->phone,
@@ -35,25 +40,32 @@ class AuthController extends Controller
         );
 
         if (!$isValid) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Неверный код'
-            ], 422);
+            return new ApiJsonResponse(
+                httpCode: 422,
+                ok: false,
+                message: 'Неверный код'
+            );
         }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Вход прошел успешно'
-        ]);
-    }
+        $user = User::where('phone', $request->phone)->first();
+        if (!$user) {
+            return new ApiJsonResponse(
+                httpCode: 404,
+                ok: false,
+                message: 'Пользователь не найден'
+            );
+        }
 
-    public function register(RegisterRequest $request): JsonResponse
-    {
-        // Here would be 1C integration
-        
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Регистрация успешна'
-        ]);
+        if (!$user->phone_verified_at) {
+            $user->phone_verified_at = now();
+            $user->save();
+        }
+
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        return new ApiJsonResponse(
+            message: 'Вход прошел успешно',
+            data: ['token' => $token]
+        );
     }
 }
