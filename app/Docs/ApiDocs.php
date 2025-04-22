@@ -19,7 +19,7 @@ namespace App\Docs;
  * )
  *
  * @OA\Server(
- *      url="/api/v1",
+ *      url="/api",
  *      description="API Server"
  * )
  * @OA\Server(

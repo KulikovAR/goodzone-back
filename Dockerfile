@@ -14,7 +14,10 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libzip-dev
-    
+
+# Install Redis extension
+RUN pecl install redis && docker-php-ext-enable redis
+
 RUN docker-php-ext-install soap
 
 # Clear cache

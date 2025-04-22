@@ -2,36 +2,70 @@
 
 namespace App\Http\Controllers;
 
-use App\Contracts\AuthServiceContract;
-use App\Http\Requests\Auth\LoginRequest;
-use App\Http\Requests\Auth\RefreshRequest;
-use App\Http\Requests\Auth\VerifyRequest;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\VerifyRequest;
 use App\Http\Responses\ApiJsonResponse;
-use Illuminate\Http\Request;
+use App\Services\VerificationService;
+use App\Models\User;
 
 class AuthController extends Controller
 {
-    public function __construct(protected AuthServiceContract $service) {}
+    public function __construct(
+        private VerificationService $verificationService
+    ) {}
 
     public function login(LoginRequest $request): ApiJsonResponse
     {
-        return $this->service->login($request);
+        $user = User::firstOrCreate(
+            ['phone' => $request->phone]
+        );
+
+        $code = $this->verificationService->generateCode($request->phone);
+        
+        $user->code_send_at = now();
+        $user->save();
+        
+        // Here would be SMS service integration
+        
+        return new ApiJsonResponse(
+            message: 'Код отправлен на телефон'
+        );
     }
 
     public function verify(VerifyRequest $request): ApiJsonResponse
     {
-        return $this->service->verify($request);
-    }
+        $isValid = $this->verificationService->verifyCode(
+            $request->phone,
+            $request->code
+        );
 
-    public function refresh(RefreshRequest $request): ApiJsonResponse
-    {
-        return $this->service->refresh($request);
-    }
+        if (!$isValid) {
+            return new ApiJsonResponse(
+                httpCode: 422,
+                ok: false,
+                message: 'Неверный код'
+            );
+        }
 
-    public function logout(Request $request): ApiJsonResponse
-    {
-        $this->service->logout($request->user());
+        $user = User::where('phone', $request->phone)->first();
+        if (!$user) {
+            return new ApiJsonResponse(
+                httpCode: 404,
+                ok: false,
+                message: 'Пользователь не найден'
+            );
+        }
 
-        return new ApiJsonResponse;
+        if (!$user->phone_verified_at) {
+            $user->phone_verified_at = now();
+            $user->save();
+        }
+
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        return new ApiJsonResponse(
+            message: 'Вход прошел успешно',
+            data: ['token' => $token]
+        );
     }
 }

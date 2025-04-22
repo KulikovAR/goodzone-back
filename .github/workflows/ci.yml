@@ -35,10 +35,10 @@ jobs:
       - name: Run Testsuite
         run: vendor/bin/phpunit tests/
 
-      - name: deploy
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.DEV_HOST }}
-          username: ${{ secrets.DEV_USER }}
-          password: ${{ secrets.DEV_PASSWORD }}
-          script: sh /home/deploy/deploy-actual-example.sh
+      # - name: deploy
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.DEV_HOST }}
+      #     username: ${{ secrets.DEV_USER }}
+      #     password: ${{ secrets.DEV_PASSWORD }}
+      #     script: sh /home/deploy/deploy-actual-example.sh

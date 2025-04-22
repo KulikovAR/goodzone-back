@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Bonus;
+use App\Models\User;
+use Carbon\Carbon;
+
+class BonusService
+{
+    public function creditBonus(User $user, float $amount, float $purchaseAmount): Bonus
+    {
+        return Bonus::create([
+            'user_id' => $user->id,
+            'amount' => $amount,
+            'purchase_amount' => $purchaseAmount,
+            'type' => 'regular'
+        ]);
+    }
+
+    public function debitBonus(User $user, float $amount): void
+    {
+        $availableBonuses = $user->bonuses()
+            ->where('expires_at', '>', now())
+            ->orWhereNull('expires_at')
+            ->sum('amount');
+
+        if ($availableBonuses < $amount) {
+            throw new \Exception('Недостаточно бонусов');
+        }
+
+        // Списываем бонусы, начиная с тех, которые истекают раньше
+        $bonuses = $user->bonuses()
+            ->where(function ($query) {
+                $query->where('expires_at', '>', now())
+                    ->orWhereNull('expires_at');
+            })
+            ->orderBy('expires_at', 'asc')
+            ->get();
+
+        $remainingDebit = $amount;
+
+        foreach ($bonuses as $bonus) {
+            if ($remainingDebit <= 0) break;
+
+            $debitFromBonus = min($bonus->amount, $remainingDebit);
+            $bonus->amount -= $debitFromBonus;
+            
+            if ($bonus->amount > 0) {
+                $bonus->save();
+            } else {
+                $bonus->delete();
+            }
+
+            $remainingDebit -= $debitFromBonus;
+        }
+    }
+
+    public function creditPromotionalBonus(User $user, float $amount, Carbon $expiryDate): Bonus
+    {
+        return Bonus::create([
+            'user_id' => $user->id,
+            'amount' => $amount,
+            'type' => 'promotional',
+            'expires_at' => $expiryDate
+        ]);
+    }
+}

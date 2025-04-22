@@ -12,6 +12,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\Bonus;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable implements FilamentUser
 {
@@ -24,8 +26,8 @@ class User extends Authenticatable implements FilamentUser
      */
     protected $fillable = [
         'name',
+        'email',
         'phone',
-        'code',
         'phone_verified_at',
         'code_send_at',
         'password',
@@ -48,7 +50,7 @@ class User extends Authenticatable implements FilamentUser
      */
     protected $casts = [
         'phone_verified_at' => 'datetime',
-        'phone_send_at' => 'datetime',
+        'code_send_at' => 'datetime',
         'deleted_at' => 'datetime',
         'password' => 'hashed',
     ];
@@ -56,5 +58,10 @@ class User extends Authenticatable implements FilamentUser
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
+    }
+
+    public function bonuses(): HasMany
+    {
+        return $this->hasMany(Bonus::class);
     }
 }
