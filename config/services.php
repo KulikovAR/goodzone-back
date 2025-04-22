@@ -55,4 +55,8 @@ return [
         'point_code' => env('PORTBILET_POINT_CODE', 'WEB_SITE'),
     ],
 
+    'one_c' => [
+        'url' => env('ONE_C_URL'),
+        'token' => env('ONE_C_TOKEN'),
+    ],
 ];
