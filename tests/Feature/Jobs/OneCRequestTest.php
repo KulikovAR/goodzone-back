@@ -4,11 +4,21 @@ namespace Tests\Feature\Jobs;
 
 use App\Jobs\OneCRequest;
 use App\Services\OneCClient;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class OneCRequestTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Mock config values for tests
+        Config::set('services.one_c.host', 'https://test-1c.example.com');
+        Config::set('services.one_c.token', 'test-token');
+    }
+
     public function test_job_retries_on_failure(): void
     {
         Http::fake([
@@ -37,6 +47,7 @@ class OneCRequestTest extends TestCase
     public function test_job_fails_after_max_attempts(): void
     {
         $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('1C API Error: 500');
 
         Http::fake([
             '*' => Http::response(['error' => 'Server Error'], 500)
