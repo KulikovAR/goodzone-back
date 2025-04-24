@@ -13,6 +13,7 @@
         "laravel/sanctum": "*",
         "laravel/telescope": "^5.7",
         "laravel/tinker": "^2.9",
+        "spatie/laravel-data": "^4.15",
         "spatie/laravel-permission": "^6.10"
     },
     "require-dev": {

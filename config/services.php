@@ -56,7 +56,7 @@ return [
     ],
 
     'one_c' => [
-        'url' => env('ONE_C_URL'),
+        'host' => env('ONE_C_HOST'),
         'token' => env('ONE_C_TOKEN'),
     ],
 ];

@@ -17,9 +17,9 @@ class OneCRequest implements ShouldQueue
     public $tries = 5;
 
     public function __construct(
-        private string $endpoint,
-        private array $data,
-        private string $method = 'POST'
+        public readonly string $endpoint,
+        public readonly array $data,
+        public readonly string $method = 'POST'
     ) {}
 
     public function handle(OneCClient $client): void
