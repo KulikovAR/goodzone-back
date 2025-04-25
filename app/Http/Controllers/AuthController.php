@@ -56,10 +56,15 @@ class AuthController extends Controller
             );
         }
 
+        if ($request->device_token) {
+            $user->device_token = $request->device_token;
+        }
+
         if (!$user->phone_verified_at) {
             $user->phone_verified_at = now();
-            $user->save();
         }
+        
+        $user->save();
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
