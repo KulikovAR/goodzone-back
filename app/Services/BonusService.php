@@ -46,7 +46,6 @@ class BonusService
             throw new \Exception('Недостаточно бонусов');
         }
 
-        // Списываем бонусы, начиная с тех, которые истекают раньше
         $bonuses = $user->bonuses()
             ->where(function ($query) {
                 $query->where('expires_at', '>', now())

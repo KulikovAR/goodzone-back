@@ -11,13 +11,11 @@ class ServicesProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Bind PushNotificationService instance
         $pushService = new PushNotificationService(
             $this->app->make(Messaging::class)
         );
         $this->app->instance(PushNotificationService::class, $pushService);
 
-        // Bind BonusService instance with PushNotificationService
         $bonusService = new BonusService($pushService);
         $this->app->instance(BonusService::class, $bonusService);
     }
