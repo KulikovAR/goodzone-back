@@ -2,32 +2,42 @@
 
 namespace App\Services;
 
+use App\DataTransferObjects\RegisterUserDto;
 use App\Jobs\OneCRequest;
 use App\Models\User;
 
 class OneCService
 {
-    public function __construct(
-        private OneCClient $client
-    ) {}
-
-    public function sendRegister(User $user, bool $alreadyInApp = false): void
+    public function sendRegister(User $user): void
     {
-        $data = [
-            'phone' => $user->phone,
-            'already_in_app' => $alreadyInApp
-        ];
-
-        OneCRequest::dispatch('api/register', $data, 'POST');
+        $dto = RegisterUserDto::fromUser($user);
+        
+        OneCRequest::dispatch(
+            config('one-c.routes.register'),
+            $dto->toArray(),
+            'POST'
+        );
     }
 
     public function sendUser(User $user): void
     {
-        OneCRequest::dispatch('api/user/' . $user->phone, [], 'GET');
+        $endpoint = str_replace(
+            '{phone}',
+            $user->phone,
+            config('one-c.routes.user')
+        );
+        
+        OneCRequest::dispatch($endpoint, [], 'GET');
     }
 
     public function updateUser(User $user): void
     {
+        $endpoint = str_replace(
+            '{phone}',
+            $user->phone,
+            config('one-c.routes.user')
+        );
+
         $data = [
             'name' => $user->name,
             'gender' => $user->gender,
@@ -35,6 +45,6 @@ class OneCService
             'email' => $user->email,
         ];
 
-        OneCRequest::dispatch('api/user/' . $user->phone, $data, 'PUT');
+        OneCRequest::dispatch($endpoint, $data, 'PUT');
     }
 }
