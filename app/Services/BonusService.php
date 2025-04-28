@@ -37,30 +37,37 @@ class BonusService
 
     public function debitBonus(User $user, float $amount): void
     {
+        // Fix 1: Properly group expiration conditions
         $availableBonuses = $user->bonuses()
-            ->where('expires_at', '>', now())
-            ->orWhereNull('expires_at')
+            ->where(function ($query) {
+                $query->where('expires_at', '>', now())
+                    ->orWhereNull('expires_at');
+            })
             ->sum('amount');
 
         if ($availableBonuses < $amount) {
             throw new \Exception('Недостаточно бонусов');
         }
 
+        // Fix 2: Use fresh query with lock
         $bonuses = $user->bonuses()
             ->where(function ($query) {
                 $query->where('expires_at', '>', now())
                     ->orWhereNull('expires_at');
             })
             ->orderBy('expires_at', 'asc')
+            ->lockForUpdate()
             ->get();
 
         $remainingDebit = $amount;
+        $totalDeducted = 0;
 
         foreach ($bonuses as $bonus) {
             if ($remainingDebit <= 0) break;
 
-            $debitFromBonus = min($bonus->amount, $remainingDebit);
-            $bonus->amount -= $debitFromBonus;
+            $deduct = min($bonus->amount, $remainingDebit);
+            $bonus->amount -= $deduct;
+            $totalDeducted += $deduct;
             
             if ($bonus->amount > 0) {
                 $bonus->save();
@@ -68,20 +75,18 @@ class BonusService
                 $bonus->delete();
             }
 
-            $remainingDebit -= $debitFromBonus;
+            $remainingDebit -= $deduct;
         }
 
-        $remainingBonus = $user->bonuses()
-            ->where('expires_at', '>', now())
-            ->orWhereNull('expires_at')
-            ->sum('amount');
+        // Fix 3: Calculate remaining from original available balance minus total deducted
+        $remainingBonus = $availableBonuses - $totalDeducted;
 
         $this->pushService->send(
             $user,
             NotificationType::BONUS_DEBIT,
             [
-                'debit_amount' => $amount,
-                'remaining_bonus' => $remainingBonus,
+                'debit_amount' => $totalDeducted,  // Use actual deducted amount
+                'remaining_bonus' => number_format($remainingBonus, 2, '.', ''),
                 'phone' => $user->phone
             ]
         );
