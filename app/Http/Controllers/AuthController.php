@@ -7,12 +7,18 @@ use App\Http\Requests\VerifyRequest;
 use App\Http\Responses\ApiJsonResponse;
 use App\Services\VerificationService;
 use App\Models\User;
+use App\Services\SmsService;
 
 class AuthController extends Controller
 {
+    private SmsService $smsService;
+
     public function __construct(
-        private VerificationService $verificationService
-    ) {}
+        private VerificationService $verificationService,
+        SmsService $smsService
+    ) {
+        $this->smsService = $smsService;
+    }
 
     public function login(LoginRequest $request): ApiJsonResponse
     {
@@ -26,7 +32,12 @@ class AuthController extends Controller
         $user->save();
         
         // Here would be SMS service integration
-        
+        // $sessionId = $this->smsService->getSessionId();
+        // if ($sessionId) {
+        //     $message = "Ваш код верификации: $code";
+        //     $this->smsService->sendSms($sessionId, $request->phone, $message);
+        // }
+
         return new ApiJsonResponse(
             message: 'Код отправлен на телефон'
         );
