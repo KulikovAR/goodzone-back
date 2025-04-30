@@ -9,6 +9,7 @@
         "php": "^8.3",
         "darkaonline/l5-swagger": "*",
         "filament/filament": "^3.2",
+        "kreait/laravel-firebase": "^6.0",
         "laravel/framework": "^11.31",
         "laravel/sanctum": "*",
         "laravel/telescope": "^5.7",

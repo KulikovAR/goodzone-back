@@ -11,6 +11,7 @@ class VerifyRequest extends FormRequest
         return [
             'code' => ['required', 'string', 'size:4'],
             'phone' => ['required', 'string', 'regex:/^([0-9\s\-\+\(\)]*)$/', 'min:10'],
+            'device_token' => ['nullable', 'string'],
         ];
     }
 }
