@@ -8,6 +8,7 @@ use App\Http\Responses\ApiJsonResponse;
 use App\Services\VerificationService;
 use App\Models\User;
 use App\Services\SmsService;
+use App\Services\OneCService;
 
 class AuthController extends Controller
 {
@@ -15,7 +16,8 @@ class AuthController extends Controller
 
     public function __construct(
         private VerificationService $verificationService,
-        SmsService $smsService
+        SmsService $smsService,
+        private OneCService $oneCService
     ) {
         $this->smsService = $smsService;
     }
@@ -73,6 +75,7 @@ class AuthController extends Controller
 
         if (!$user->phone_verified_at) {
             $user->phone_verified_at = now();
+            $this->oneCService->sendRegister($user);
         }
         
         $user->save();
