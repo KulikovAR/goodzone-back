@@ -3,8 +3,11 @@
 namespace Tests\Feature\Bonus;
 
 use App\Models\User;
+use App\Services\BonusService;
+use App\Services\PushNotificationService;
 use Tests\TestCase;
 use Carbon\Carbon;
+use Mockery;
 
 class BonusTest extends TestCase
 {

@@ -9,8 +9,7 @@ class VerificationService
 {
     public function generateCode(string $phone): string
     {
-        // In real app, generate random code
-        $code = '1234';
+        $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
 
         VerificationCode::create([
             'phone' => $phone,

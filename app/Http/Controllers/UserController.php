@@ -6,9 +6,24 @@ use App\Http\Requests\User\UpdateRequest;
 use App\Http\Responses\ApiJsonResponse;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Services\OneCService;
 
 class UserController extends Controller
 {
+    public function __construct(
+        private OneCService $oneCService
+    ) {}
+
+    public function show(): ApiJsonResponse
+    {
+        $user = Auth::user();
+
+        return new ApiJsonResponse(
+            message: 'Данные пользователя получены',
+            data: $user
+        );
+    }
+
     public function update(UpdateRequest $request): ApiJsonResponse
     {
         $user = Auth::user();
@@ -18,6 +33,7 @@ class UserController extends Controller
 
         if (!empty($data)) {
             $user->update($data);
+            $this->oneCService->updateUser($user);
         }
 
         return new ApiJsonResponse(

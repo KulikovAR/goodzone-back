@@ -3,10 +3,21 @@
 namespace Tests\Feature\User;
 
 use App\Models\User;
+use App\Services\OneCService;
 use Tests\TestCase;
 
 class UserTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        // Mock OneCService
+        $this->mock(OneCService::class, function ($mock) {
+            $mock->shouldReceive('updateUser')->andReturn(null);
+        });
+    }
+
     public function test_user_can_update_profile_with_new_email()
     {
         $user = User::factory()->create();
@@ -71,5 +82,35 @@ class UserTest extends TestCase
         ]);
 
         $response->assertUnauthorized();
+    }
+
+    public function test_user_can_get_info()
+    {
+        $uniqueEmail = 'test_' . time() . '@example.com';
+        $user = User::factory()->create([
+            'name' => 'John Doe',
+            'gender' => 'male',
+            'city' => 'Moscow',
+            'email' => $uniqueEmail
+        ]);
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->getJson('/api/user');
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'message' => 'Данные пользователя получены',
+                'data' => [
+                    'id' => $user->id,
+                    'name' => 'John Doe',
+                    'gender' => 'male',
+                    'city' => 'Moscow',
+                    'email' => $uniqueEmail,
+                    'phone' => $user->phone
+                ]
+            ]);
     }
 }

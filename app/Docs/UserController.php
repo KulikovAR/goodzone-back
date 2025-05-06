@@ -1,0 +1,90 @@
+<?php
+
+namespace App\Docs;
+
+class UserController
+{
+    /**
+     * @OA\Get(
+     *     path="/user",
+     *     summary="Получение данных пользователя",
+     *     description="Возвращает данные авторизованного пользователя",
+     *     tags={"User"},
+     *     security={{ "sanctum": {} }},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Успешный запрос",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="ok", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Данные пользователя получены"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="John Doe"),
+     *                 @OA\Property(property="phone", type="string", example="+79991234567"),
+     *                 @OA\Property(property="email", type="string", example="john@example.com"),
+     *                 @OA\Property(property="gender", type="string", example="male"),
+     *                 @OA\Property(property="city", type="string", example="Moscow")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Не авторизован"
+     *     )
+     * )
+     */
+    public function show()
+    {
+        //
+    }
+
+    /**
+     * @OA\Put(
+     *     path="/user/update",
+     *     summary="Обновление данных пользователя",
+     *     description="Обновляет данные авторизованного пользователя",
+     *     tags={"User"},
+     *     security={{ "sanctum": {} }},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="name", type="string", example="John Doe"),
+     *             @OA\Property(property="email", type="string", example="john@example.com"),
+     *             @OA\Property(property="gender", type="string", example="male"),
+     *             @OA\Property(property="city", type="string", example="Moscow")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Успешное обновление",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="ok", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Пользователь успешно обновлен")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Не авторизован"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Ошибка валидации"
+     *     )
+     * )
+     */
+    public function update()
+    {
+        //
+    }
+}

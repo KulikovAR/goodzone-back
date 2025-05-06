@@ -15,7 +15,8 @@ class RegisterUserDto extends Data
     public static function fromUser(User $user): self
     {
         return new self(
-            phone: $user->phone
+            phone: $user->phone,
+            already_in_app: $user->come_from_app
         );
     }
 }

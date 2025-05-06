@@ -16,6 +16,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bonus/debit', [BonusController::class, 'debit']);
     Route::post('/bonus/promotion', [BonusController::class, 'promotion']);
     Route::put('/user/update', [UserController::class, 'update']);
+    Route::get('/user', [UserController::class, 'show']);
 });
 
 Route::get('/assets/{locale?}', [AssetsController::class, 'show'])->name('assets.index');
