@@ -3,10 +3,21 @@
 namespace Tests\Feature\User;
 
 use App\Models\User;
+use App\Services\OneCService;
 use Tests\TestCase;
 
 class UserTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        // Mock OneCService
+        $this->mock(OneCService::class, function ($mock) {
+            $mock->shouldReceive('updateUser')->andReturn(null);
+        });
+    }
+
     public function test_user_can_update_profile_with_new_email()
     {
         $user = User::factory()->create();

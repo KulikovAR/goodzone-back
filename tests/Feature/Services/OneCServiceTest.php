@@ -35,14 +35,18 @@ class OneCServiceTest extends TestCase
             ], 200)
         ]);
 
+        // Set come_from_app value for testing
+        $this->user->come_from_app = false;
+        $this->user->save();
+
         $this->service->sendRegister($this->user);
 
         Queue::assertPushed(OneCRequest::class, function ($job) {
             return $job->endpoint === config('one-c.routes.register')
                 && $job->method === 'POST'
                 && $job->data === [
-                    'phone' => $this->user->phone,  // Use dynamic phone
-                    'already_in_app' => false
+                    'phone' => $this->user->phone,
+                    'already_in_app' => $this->user->come_from_app
                 ];
         });
     }
