@@ -69,16 +69,26 @@ class AuthController extends Controller
             );
         }
 
+        $isFirstVerification = !$user->phone_verified_at;
+
         if ($request->device_token) {
             $user->device_token = $request->device_token;
         }
 
-        if (!$user->phone_verified_at) {
+        if ($isFirstVerification) {
             $user->phone_verified_at = now();
-            $this->oneCService->sendRegister($user);
+            
+            $platform = $request->header('platform');
+            if (in_array($platform, ['android', 'ios'])) {
+                $user->come_from_app = true;
+            }
         }
         
         $user->save();
+
+        if ($isFirstVerification) {
+            $this->oneCService->sendRegister($user);
+        }
 
         $token = $user->createToken('auth-token')->plainTextToken;
 

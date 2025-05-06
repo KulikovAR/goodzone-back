@@ -5,9 +5,21 @@ namespace Tests\Feature\Auth;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\VerificationCode;
+use App\Services\OneCService;
+use Mockery;
 
 class RegistrationTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        // Mock OneCService
+        $this->mock(OneCService::class, function ($mock) {
+            $mock->shouldReceive('sendRegister')->andReturn(null);
+        });
+    }
+
     public function test_user_can_request_verification_code(): void
     {
         $phone = '+7' . fake()->numerify('##########');
@@ -109,4 +121,75 @@ class RegistrationTest extends TestCase
             'phone' => $phone
         ]);
     }
+
+    public function test_android_user_can_verify_code(): void
+    {
+        $phone = '+7' . fake()->numerify('##########');
+        User::create([
+            'phone' => $phone
+        ]);
+        VerificationCode::create([
+            'phone' => $phone,
+            'code' => '1234',
+            'expires_at' => now()->addMinutes(5)
+        ]);
+
+        $response = $this->withHeaders([
+            'platform' => 'android'
+        ])->postJson('/api/verify', [
+            'phone' => $phone,
+            'code' => '1234'
+        ]);
+
+        $response->assertStatus(200);
+        $user = User::where('phone', $phone)->first();
+        $this->assertEquals(1, $user->come_from_app);
+    }
+
+    public function test_ios_user_can_verify_code(): void
+    {
+        $phone = '+7' . fake()->numerify('##########');
+        User::create([
+            'phone' => $phone
+        ]);
+        VerificationCode::create([
+            'phone' => $phone,
+            'code' => '1234',
+            'expires_at' => now()->addMinutes(5)
+        ]);
+
+        $response = $this->withHeaders([
+            'platform' => 'ios'
+        ])->postJson('/api/verify', [
+            'phone' => $phone,
+            'code' => '1234'
+        ]);
+
+        $response->assertStatus(200);
+        $user = User::where('phone', $phone)->first();
+        $this->assertEquals(1, $user->come_from_app);
+    }
+
+    public function test_web_user_can_verify_code(): void
+    {
+        $phone = '+7' . fake()->numerify('##########');
+        User::create([
+            'phone' => $phone
+        ]);
+        VerificationCode::create([
+            'phone' => $phone,
+            'code' => '1234',
+            'expires_at' => now()->addMinutes(5)
+        ]);
+
+        $response = $this->postJson('/api/verify', [
+            'phone' => $phone,
+            'code' => '1234'
+        ]);
+
+        $response->assertStatus(200);
+        $user = User::where('phone', $phone)->first();
+        $this->assertEquals(0, $user->come_from_app);
+    }
+    
 }

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('email')->unique()->nullable();
             $table->timestamp('code_send_at')->nullable();
             $table->timestamp('phone_verified_at')->nullable();
+            $table->boolean('come_from_app')->default(false);
             $table->string('password')->nullable();
             $table->string('gender')->nullable();
             $table->string('city')->nullable();
