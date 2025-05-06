@@ -9,6 +9,7 @@ use App\Services\VerificationService;
 use App\Models\User;
 use App\Services\SmsService;
 use App\Services\OneCService;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -34,11 +35,17 @@ class AuthController extends Controller
         $user->save();
         
         // Here would be SMS service integration
-        // $sessionId = $this->smsService->getSessionId();
-        // if ($sessionId) {
-        //     $message = "Ваш код верификации: $code";
-        //     $this->smsService->sendSms($sessionId, $request->phone, $message);
-        // }
+        try {
+            // Add timeout for SMS service
+            $sessionId = $this->smsService->getSessionId();
+            if ($sessionId) {
+                $message = "Ваш код верификации: $code";
+                $this->smsService->sendSms($sessionId, $request->phone, $message);
+            }
+        } catch (\Exception $e) {
+            // Log the error but don't stop the process
+            Log::error('SMS service error: ' . $e->getMessage());
+        }
 
         return new ApiJsonResponse(
             message: 'Код отправлен на телефон'

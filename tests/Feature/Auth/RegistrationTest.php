@@ -18,6 +18,12 @@ class RegistrationTest extends TestCase
         $this->mock(OneCService::class, function ($mock) {
             $mock->shouldReceive('sendRegister')->andReturn(null);
         });
+
+        // Mock SmsService
+        $this->mock(\App\Services\SmsService::class, function ($mock) {
+            $mock->shouldReceive('getSessionId')->andReturn('fake-session-id');
+            $mock->shouldReceive('sendSms')->andReturn(true);
+        });
     }
 
     public function test_user_can_request_verification_code(): void
