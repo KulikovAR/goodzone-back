@@ -72,4 +72,34 @@ class UserTest extends TestCase
 
         $response->assertUnauthorized();
     }
+
+    public function test_user_can_get_info()
+    {
+        $uniqueEmail = 'test_' . time() . '@example.com';
+        $user = User::factory()->create([
+            'name' => 'John Doe',
+            'gender' => 'male',
+            'city' => 'Moscow',
+            'email' => $uniqueEmail
+        ]);
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->getJson('/api/user');
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'message' => 'Данные пользователя получены',
+                'data' => [
+                    'id' => $user->id,
+                    'name' => 'John Doe',
+                    'gender' => 'male',
+                    'city' => 'Moscow',
+                    'email' => $uniqueEmail,
+                    'phone' => $user->phone
+                ]
+            ]);
+    }
 }
