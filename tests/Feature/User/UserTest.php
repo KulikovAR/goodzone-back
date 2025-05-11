@@ -11,7 +11,7 @@ class UserTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Mock OneCService
         $this->mock(OneCService::class, function ($mock) {
             $mock->shouldReceive('updateUser')->andReturn(null);
@@ -86,13 +86,15 @@ class UserTest extends TestCase
 
     public function test_user_can_get_info()
     {
-        $uniqueEmail = 'test_' . time() . '@example.com';
+        $uniqueEmail = $this->faker->email();
+        
         $user = User::factory()->create([
             'name' => 'John Doe',
             'gender' => 'male',
             'city' => 'Moscow',
             'email' => $uniqueEmail
         ]);
+
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([

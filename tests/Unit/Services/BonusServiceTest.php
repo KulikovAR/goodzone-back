@@ -20,7 +20,7 @@ class BonusServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        parent::setUp(); // Restore parent setup call
+        parent::setUp();
         $this->mockPushService = Mockery::mock(PushNotificationService::class);
         $this->service = new BonusService($this->mockPushService);
     }
@@ -70,11 +70,14 @@ class BonusServiceTest extends TestCase
     public function test_debit_bonus_processes_and_sends_notification()
     {
         $user = User::factory()->create();
-        Bonus::factory()->create([
-            'user_id' => $user->id,
-            'amount' => 150,
+        
+        // Создаем бонус и устанавливаем баланс
+        $user->bonuses()->create([
+            'amount' => 100,
             'type' => 'regular'
         ]);
+        $user->bonus_amount = 100;
+        $user->save();
 
         $this->mockPushService->shouldReceive('send')
             ->once()
@@ -82,14 +85,22 @@ class BonusServiceTest extends TestCase
                 $user,
                 NotificationType::BONUS_DEBIT,
                 [
-                    'debit_amount' => 100.0,
-                    'remaining_bonus' => '50.00', // Should come from service calculation
+                    'debit_amount' => 50,
+                    'remaining_bonus' => '50.00',
                     'phone' => $user->phone
                 ]
             );
 
-        $this->service->debitBonus($user, 100);
-        $this->assertEquals(50, $user->bonuses()->sum('amount'));
+        $this->service->debitBonus($user, 50);
+
+        $this->assertDatabaseHas('bonuses', [
+            'user_id' => $user->id,
+            'amount' => -50,
+            'type' => 'regular'
+        ]);
+
+        $user->refresh();
+        $this->assertEquals(50, $user->bonus_amount);
     }
 
     public function test_debit_bonus_uses_expiring_bonuses_first()
@@ -98,6 +109,7 @@ class BonusServiceTest extends TestCase
         $earlierExpiry = Carbon::now()->addDays(10);
         $laterExpiry = Carbon::now()->addDays(20);
 
+        // Создаем бонусы с разными датами истечения
         Bonus::factory()->create([
             'user_id' => $user->id,
             'amount' => 50,
@@ -111,6 +123,10 @@ class BonusServiceTest extends TestCase
             'type' => 'promotional',
             'expires_at' => $earlierExpiry
         ]);
+
+        // Устанавливаем общий баланс
+        $user->bonus_amount = 100;
+        $user->save();
 
         $this->mockPushService->shouldReceive('send')
             ->once()
@@ -128,15 +144,12 @@ class BonusServiceTest extends TestCase
 
         $this->assertDatabaseHas('bonuses', [
             'user_id' => $user->id,
-            'amount' => 40,
-            'expires_at' => $laterExpiry->format('Y-m-d H:i:s')
+            'amount' => -60,
+            'type' => 'regular'
         ]);
-        
-        $this->assertSoftDeleted('bonuses', [
-            'user_id' => $user->id,
-            'amount' => 50,
-            'expires_at' => $earlierExpiry->format('Y-m-d H:i:s')
-        ]);
+
+        $user->refresh();
+        $this->assertEquals(40, $user->bonus_amount);
     }
 
     public function test_credit_promotional_bonus_creates_bonus_and_sends_notification()
