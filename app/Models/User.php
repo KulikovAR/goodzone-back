@@ -33,6 +33,7 @@ class User extends Authenticatable implements FilamentUser
         'device_token',
         'phone_verified_at',
         'code_send_at',
+        'bonus_amount',
         'password',
     ];
 
@@ -56,6 +57,7 @@ class User extends Authenticatable implements FilamentUser
         'code_send_at' => 'datetime',
         'deleted_at' => 'datetime',
         'password' => 'hashed',
+        'bonus_amount' => 'decimal:2',
     ];
 
     public function canAccessPanel(Panel $panel): bool
@@ -66,5 +68,10 @@ class User extends Authenticatable implements FilamentUser
     public function bonuses(): HasMany
     {
         return $this->hasMany(Bonus::class);
+    }
+
+    public function getAvailableBonusAmount(): float
+    {
+        return $this->bonus_amount;
     }
 }

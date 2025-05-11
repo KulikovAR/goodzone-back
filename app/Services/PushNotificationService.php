@@ -14,7 +14,7 @@ class PushNotificationService
         private readonly Messaging $messaging
     ) {}
 
-    public function send(User $user, NotificationType $type, array $data = []): void
+    public function send(User $user, NotificationType $type, array $data = [])
     {
         if (!$user->device_token) {
             return;
@@ -30,6 +30,8 @@ class PushNotificationService
         ]);
 
         $this->messaging->send($message);
+
+        return null;
     }
 
     private function getMessage(NotificationType $type, array $data): string

@@ -11,7 +11,6 @@ class DebitRequest extends FormRequest
         return [
             'phone' => ['required', 'string', 'exists:users,phone'],
             'debit_amount' => ['required', 'numeric', 'min:0'],
-            'remaining_bonus' => ['required', 'numeric', 'min:0'],
         ];
     }
 }

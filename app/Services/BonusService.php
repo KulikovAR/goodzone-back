@@ -6,6 +6,7 @@ use App\Models\Bonus;
 use App\Models\User;
 use Carbon\Carbon;
 use App\Enums\NotificationType;
+use Illuminate\Support\Facades\DB;
 
 class BonusService
 {
@@ -13,104 +14,94 @@ class BonusService
         private readonly PushNotificationService $pushService
     ) {}
 
-    public function creditBonus(User $user, float $amount, float $purchaseAmount): Bonus
+    public function recalculateUserBonus(User $user): void
     {
-        $bonus = Bonus::create([
-            'user_id' => $user->id,
-            'amount' => $amount,
-            'purchase_amount' => $purchaseAmount,
-            'type' => 'regular'
-        ]);
-
-        $this->pushService->send(
-            $user,
-            NotificationType::BONUS_CREDIT,
-            [
-                'amount' => $amount,
-                'purchase_amount' => $purchaseAmount,
-                'phone' => $user->phone
-            ]
-        );
-
-        return $bonus;
-    }
-
-    public function debitBonus(User $user, float $amount): void
-    {
-        // Fix 1: Properly group expiration conditions
-        $availableBonuses = $user->bonuses()
+        $totalBonus = $user->bonuses()
             ->where(function ($query) {
                 $query->where('expires_at', '>', now())
                     ->orWhereNull('expires_at');
             })
             ->sum('amount');
 
-        if ($availableBonuses < $amount) {
-            throw new \Exception('Недостаточно бонусов');
-        }
+        $user->update(['bonus_amount' => $totalBonus]);
+    }
 
-        // Fix 2: Use fresh query with lock
-        $bonuses = $user->bonuses()
-            ->where(function ($query) {
-                $query->where('expires_at', '>', now())
-                    ->orWhereNull('expires_at');
-            })
-            ->orderBy('expires_at', 'asc')
-            ->lockForUpdate()
-            ->get();
+    public function creditBonus(User $user, float $amount, float $purchaseAmount): Bonus
+    {
+        return DB::transaction(function () use ($user, $amount, $purchaseAmount) {
+            $bonus = Bonus::create([
+                'user_id' => $user->id,
+                'amount' => $amount,
+                'purchase_amount' => $purchaseAmount,
+                'type' => 'regular'
+            ]);
 
-        $remainingDebit = $amount;
-        $totalDeducted = 0;
+            $this->recalculateUserBonus($user);
 
-        foreach ($bonuses as $bonus) {
-            if ($remainingDebit <= 0) break;
+            $this->pushService->send(
+                $user,
+                NotificationType::BONUS_CREDIT,
+                [
+                    'amount' => $amount,
+                    'purchase_amount' => $purchaseAmount,
+                    'phone' => $user->phone
+                ]
+            );
 
-            $deduct = min($bonus->amount, $remainingDebit);
-            $bonus->amount -= $deduct;
-            $totalDeducted += $deduct;
-            
-            if ($bonus->amount > 0) {
-                $bonus->save();
-            } else {
-                $bonus->delete();
+            return $bonus;
+        });
+    }
+
+    public function debitBonus(User $user, float $amount): void
+    {
+        DB::transaction(function () use ($user, $amount) {
+            if ($user->bonus_amount < $amount) {
+                throw new \Exception('Недостаточно бонусов');
             }
 
-            $remainingDebit -= $deduct;
-        }
+            Bonus::create([
+                'user_id' => $user->id,
+                'amount' => -$amount,
+                'type' => 'regular'
+            ]);
 
-        // Fix 3: Calculate remaining from original available balance minus total deducted
-        $remainingBonus = $availableBonuses - $totalDeducted;
+            $this->recalculateUserBonus($user);
 
-        $this->pushService->send(
-            $user,
-            NotificationType::BONUS_DEBIT,
-            [
-                'debit_amount' => $totalDeducted,  // Use actual deducted amount
-                'remaining_bonus' => number_format($remainingBonus, 2, '.', ''),
-                'phone' => $user->phone
-            ]
-        );
+            $this->pushService->send(
+                $user,
+                NotificationType::BONUS_DEBIT,
+                [
+                    'debit_amount' => $amount,
+                    'remaining_bonus' => number_format($user->bonus_amount, 2, '.', ''),
+                    'phone' => $user->phone
+                ]
+            );
+        });
     }
 
     public function creditPromotionalBonus(User $user, float $amount, Carbon $expiryDate): Bonus
     {
-        $bonus = Bonus::create([
-            'user_id' => $user->id,
-            'amount' => $amount,
-            'type' => 'promotional',
-            'expires_at' => $expiryDate
-        ]);
+        return DB::transaction(function () use ($user, $amount, $expiryDate) {
+            $bonus = Bonus::create([
+                'user_id' => $user->id,
+                'amount' => $amount,
+                'type' => 'promotional',
+                'expires_at' => $expiryDate
+            ]);
 
-        $this->pushService->send(
-            $user,
-            NotificationType::BONUS_PROMOTION,
-            [
-                'bonus_amount' => $amount,
-                'expiry_date' => $expiryDate->format('Y-m-d\TH:i:s'),
-                'phone' => $user->phone
-            ]
-        );
-        
-        return $bonus;
+            $this->recalculateUserBonus($user);
+
+            $this->pushService->send(
+                $user,
+                NotificationType::BONUS_PROMOTION,
+                [
+                    'bonus_amount' => $amount,
+                    'expiry_date' => $expiryDate->format('Y-m-d\TH:i:s'),
+                    'phone' => $user->phone
+                ]
+            );
+
+            return $bonus;
+        });
     }
 }
