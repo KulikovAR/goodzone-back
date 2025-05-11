@@ -18,38 +18,45 @@ class OneCRequest implements ShouldQueue
 
     public function __construct(
         public readonly string $endpoint,
-        public readonly array $data,
+        public readonly array  $data,
         public readonly string $method = 'POST'
-    ) {}
+    )
+    {
+    }
 
     public function handle(OneCClient $client): void
     {
+        if (app()->environment('local')) {
+            return;
+        }
+
         try {
-            $response = match($this->method) {
-                'GET' => $client->get($this->endpoint),
-                'PUT' => $client->put($this->endpoint, $this->data),
-                'POST' => $client->post($this->endpoint, $this->data),
+            $response = match ($this->method) {
+                'GET'   => $client->get($this->endpoint),
+                'PUT'   => $client->put($this->endpoint, $this->data),
+                'POST'  => $client->post($this->endpoint, $this->data),
                 default => throw new \InvalidArgumentException('Unsupported HTTP method')
             };
-            
-            if (!$response->successful()) {
+
+            if ( ! $response->successful()) {
                 Log::error('1C API Error', [
                     'endpoint' => $this->endpoint,
-                    'method' => $this->method,
-                    'data' => $this->data,
-                    'response' => $response->json()
+                    'method'   => $this->method,
+                    'data'     => $this->data,
+                    'response' => $response->json(),
                 ]);
-                
+
                 throw new \Exception('1C API Error: ' . $response->status());
             }
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             Log::error('1C Request Failed', [
                 'endpoint' => $this->endpoint,
-                'method' => $this->method,
-                'data' => $this->data,
-                'error' => $e->getMessage()
+                'method'   => $this->method,
+                'data'     => $this->data,
+                'error'    => $e->getMessage(),
             ]);
-            
+
             throw $e;
         }
     }
