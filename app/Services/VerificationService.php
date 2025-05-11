@@ -14,7 +14,7 @@ class VerificationService
         VerificationCode::create([
             'phone' => $phone,
             'code' => $code,
-            // 'expires_at' => Carbon::now()->addMinutes(5)
+            'expires_at' => Carbon::now()->addMinutes(5)
         ]);
 
         return $code;
@@ -25,7 +25,7 @@ class VerificationService
         $verificationCode = VerificationCode::where('phone', $phone)
             ->where('code', $code)
             ->where('expires_at', '>', Carbon::now())
-            ->whereNull('verified_at')
+            // ->whereNull('verified_at')
             ->latest()
             ->first();
 
