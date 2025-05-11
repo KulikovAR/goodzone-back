@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\VerifyRequest;
 use App\Http\Responses\ApiJsonResponse;
-use App\Services\VerificationService;
 use App\Models\User;
-use App\Services\SmsService;
 use App\Services\OneCService;
+use App\Services\SmsService;
+use App\Services\VerificationService;
 use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
@@ -17,9 +17,10 @@ class AuthController extends Controller
 
     public function __construct(
         private VerificationService $verificationService,
-        SmsService $smsService,
-        private OneCService $oneCService
-    ) {
+        SmsService                  $smsService,
+        private OneCService         $oneCService
+    )
+    {
         $this->smsService = $smsService;
     }
 
@@ -30,21 +31,21 @@ class AuthController extends Controller
         );
 
         $code = $this->verificationService->generateCode($request->phone);
-        
+
         $user->code_send_at = now();
         $user->save();
-        
-        // Here would be SMS service integration
-        try {
-            // Add timeout for SMS service
-            $sessionId = $this->smsService->getSessionId();
-            if ($sessionId) {
-                $message = "Ваш код верификации: $code";
-                $this->smsService->sendSms($sessionId, $request->phone, $message);
+
+        if (app()->environment('local')) {
+            try {
+                $sessionId = $this->smsService->getSessionId();
+                if ($sessionId) {
+                    $message = "Ваш код верификации: $code";
+                    $this->smsService->sendSms($sessionId, $request->phone, $message);
+                }
             }
-        } catch (\Exception $e) {
-            // Log the error but don't stop the process
-            Log::error('SMS service error: ' . $e->getMessage());
+            catch (\Exception $e) {
+                Log::error('SMS service error: ' . $e->getMessage());
+            }
         }
 
         return new ApiJsonResponse(
@@ -59,7 +60,7 @@ class AuthController extends Controller
             $request->code
         );
 
-        if (!$isValid) {
+        if ( ! $isValid) {
             return new ApiJsonResponse(
                 httpCode: 422,
                 ok: false,
@@ -68,7 +69,7 @@ class AuthController extends Controller
         }
 
         $user = User::where('phone', $request->phone)->first();
-        if (!$user) {
+        if ( ! $user) {
             return new ApiJsonResponse(
                 httpCode: 404,
                 ok: false,
@@ -76,7 +77,7 @@ class AuthController extends Controller
             );
         }
 
-        $isFirstVerification = !$user->phone_verified_at;
+        $isFirstVerification = ! $user->phone_verified_at;
 
         if ($request->device_token) {
             $user->device_token = $request->device_token;
@@ -84,13 +85,13 @@ class AuthController extends Controller
 
         if ($isFirstVerification) {
             $user->phone_verified_at = now();
-            
+
             $platform = $request->header('platform');
             if (in_array($platform, ['android', 'ios'])) {
                 $user->come_from_app = true;
             }
         }
-        
+
         $user->save();
 
         if ($isFirstVerification) {

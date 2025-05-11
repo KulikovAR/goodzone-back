@@ -4,12 +4,17 @@ namespace App\Services;
 
 use App\Models\VerificationCode;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\URL;
 
 class VerificationService
 {
     public function generateCode(string $phone): string
     {
         $code = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+
+        if (app()->environment('local')) {
+            $code = '1111';
+        }
 
         VerificationCode::create([
             'phone' => $phone,
