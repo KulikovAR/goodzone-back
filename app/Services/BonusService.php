@@ -131,4 +131,26 @@ class BonusService
             return $bonus;
         });
     }
+
+    public function getBonusHistory(User $user): array
+    {
+        $bonuses = $user->bonuses()
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function (Bonus $bonus) {
+                return [
+                    'id' => $bonus->id,
+                    'amount' => $bonus->amount,
+                    'type' => $bonus->type,
+                    'purchase_amount' => $bonus->purchase_amount,
+                    'expires_at' => $bonus->expires_at?->format('Y-m-d\TH:i:s'),
+                    'created_at' => $bonus->created_at->format('Y-m-d\TH:i:s'),
+                ];
+            });
+
+        return [
+            'history' => $bonuses,
+            'total_count' => $bonuses->count(),
+        ];
+    }
 }

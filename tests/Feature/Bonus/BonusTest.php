@@ -333,4 +333,95 @@ class BonusTest extends TestCase
 
         $response->assertUnauthorized();
     }
+
+    public function test_user_can_get_bonus_history()
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        // Создаем несколько бонусов
+        $regularBonus = $user->bonuses()->create([
+            'amount' => 100,
+            'purchase_amount' => 1000,
+            'type' => 'regular',
+            'created_at' => now()->subDays(2)
+        ]);
+
+        $promotionalBonus = $user->bonuses()->create([
+            'amount' => 200,
+            'type' => 'promotional',
+            'expires_at' => now()->addDays(30),
+            'created_at' => now()->subDay()
+        ]);
+
+        $debitBonus = $user->bonuses()->create([
+            'amount' => -50,
+            'type' => 'regular',
+            'created_at' => now()
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->getJson('/api/bonus/history');
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'ok',
+                'data' => [
+                    'history' => [
+                        '*' => [
+                            'id',
+                            'amount',
+                            'type',
+                            'purchase_amount',
+                            'expires_at',
+                            'created_at'
+                        ]
+                    ],
+                    'total_count'
+                ]
+            ]);
+
+        $responseData = $response->json('data');
+        
+        // Проверяем общее количество
+        $this->assertEquals(3, $responseData['total_count']);
+
+        // Проверяем, что все бонусы присутствуют в ответе
+        $history = collect($responseData['history']);
+        
+        $this->assertTrue($history->contains(function ($item) use ($regularBonus) {
+            return $item['id'] === $regularBonus->id
+                && $item['amount'] === number_format($regularBonus->amount, 2, '.', '')
+                && $item['type'] === 'regular'
+                && $item['purchase_amount'] === number_format($regularBonus->purchase_amount, 2, '.', '')
+                && $item['expires_at'] === null;
+        }));
+
+        $this->assertTrue($history->contains(function ($item) use ($promotionalBonus) {
+            return $item['id'] === $promotionalBonus->id
+                && $item['amount'] === number_format($promotionalBonus->amount, 2, '.', '')
+                && $item['type'] === 'promotional'
+                && $item['purchase_amount'] === null
+                && $item['expires_at'] === $promotionalBonus->expires_at->format('Y-m-d\TH:i:s');
+        }));
+
+        $this->assertTrue($history->contains(function ($item) use ($debitBonus) {
+            return $item['id'] === $debitBonus->id
+                && $item['amount'] === number_format($debitBonus->amount, 2, '.', '')
+                && $item['type'] === 'regular'
+                && $item['purchase_amount'] === null
+                && $item['expires_at'] === null;
+        }));
+
+        // Проверяем, что история отсортирована по дате создания в обратном порядке
+        $sortedHistory = $history->sortByDesc('created_at')->values();
+        $this->assertEquals($sortedHistory->toArray(), $history->toArray());
+    }
+
+    public function test_unauthorized_user_cannot_get_bonus_history()
+    {
+        $response = $this->getJson('/api/bonus/history');
+        $response->assertUnauthorized();
+    }
 }

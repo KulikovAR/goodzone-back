@@ -13,6 +13,7 @@ Route::middleware(['guest'])->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bonus/info', [BonusController::class, 'info']);
+    Route::get('/bonus/history', [BonusController::class, 'history']);
     Route::post('/bonus/credit', [BonusController::class, 'credit']);
     Route::post('/bonus/debit', [BonusController::class, 'debit']);
     Route::post('/bonus/promotion', [BonusController::class, 'promotion']);

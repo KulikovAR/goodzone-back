@@ -11,6 +11,7 @@ use App\Services\BonusService;
 use App\Services\PushNotificationService;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\Auth;
 
 class BonusController extends Controller
 {
@@ -22,7 +23,7 @@ class BonusController extends Controller
 
     public function info(): ApiJsonResponse
     {
-        $user = auth()->user();
+        $user = Auth::user();
         
         $bonusInfo = $this->bonusService->getBonusInfo($user);
 
@@ -82,6 +83,17 @@ class BonusController extends Controller
 
         return new ApiJsonResponse(
             message: 'Акционные бонусы начислены'
+        );
+    }
+
+    public function history(): ApiJsonResponse
+    {
+        $user = Auth::user();
+        
+        $history = $this->bonusService->getBonusHistory($user);
+
+        return new ApiJsonResponse(
+            data: $history
         );
     }
 }
