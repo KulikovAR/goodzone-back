@@ -77,6 +77,6 @@ class User extends Authenticatable implements FilamentUser
 
     public function routeNotificationForExpo(): ?ExpoPushToken
     {
-        return $this->device_token ? new ExpoPushToken($this->device_token) : null;
+        return $this->device_token ? ExpoPushToken::make($this->device_token) : null;
     }
 }
