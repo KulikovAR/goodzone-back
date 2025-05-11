@@ -47,7 +47,7 @@ class SmsService
                     'SessionID' => $sessionId,
                     'SourceAddress' => 'GoodZone',
                     'DestinationAddress' => $destination,
-                    'Data' => urlencode($message),
+                    'Data' => $message,
                     'Validity' => 1,
                 ],
                 'headers' => [
