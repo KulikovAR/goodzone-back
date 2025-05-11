@@ -5,15 +5,13 @@ namespace App\Models;
 use App\Traits\HasRefreshToken;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use App\Models\Bonus;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable implements FilamentUser
 {
@@ -34,6 +32,7 @@ class User extends Authenticatable implements FilamentUser
         'phone_verified_at',
         'code_send_at',
         'bonus_amount',
+        'purchase_amount',
         'password',
     ];
 
@@ -54,10 +53,10 @@ class User extends Authenticatable implements FilamentUser
      */
     protected $casts = [
         'phone_verified_at' => 'datetime',
-        'code_send_at' => 'datetime',
-        'deleted_at' => 'datetime',
-        'password' => 'hashed',
-        'bonus_amount' => 'decimal:2',
+        'code_send_at'      => 'datetime',
+        'deleted_at'        => 'datetime',
+        'password'          => 'hashed',
+        'bonus_amount'      => 'decimal:2',
     ];
 
     public function canAccessPanel(Panel $panel): bool
@@ -70,8 +69,8 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Bonus::class);
     }
 
-    public function getAvailableBonusAmount(): float
+    public function addPurchaseAmount($amount)
     {
-        return $this->bonus_amount;
+        $this->purchase_amount += $amount;
     }
 }

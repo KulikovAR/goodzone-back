@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\BonusService;
 use App\Services\PushNotificationService;
 use App\Enums\NotificationType;
+use App\Enums\BonusLevel;
 use Tests\TestCase;
 use Carbon\Carbon;
 use Mockery;
@@ -28,6 +29,122 @@ class BonusTest extends TestCase
     {
         Mockery::close();
         parent::tearDown();
+    }
+
+    public function test_user_can_get_bonus_info()
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        // Создаем бонусы для разных уровней
+        $user->bonuses()->create([
+            'amount' => 100,
+            'purchase_amount' => 5000,
+            'type' => 'regular'
+        ]);
+
+        $user->bonus_amount = 100;
+        $user->save();
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->getJson('/api/bonus/info');
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'data' => [
+                    'bonus_amount' => 100,
+                    'level' => BonusLevel::BRONZE->value,
+                    'cashback_percent' => BonusLevel::BRONZE->getCashbackPercent(),
+                    'total_purchase_amount' => 5000,
+                    'next_level' => BonusLevel::SILVER->value,
+                    'next_level_min_amount' => BonusLevel::SILVER->getMinPurchaseAmount(),
+                ]
+            ]);
+
+        $responseData = $response->json('data');
+        $this->assertEquals(50, $responseData['progress_to_next_level']);
+    }
+
+    public function test_user_can_get_bonus_info_with_silver_level()
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        // Создаем бонусы для серебряного уровня
+        $user->bonuses()->create([
+            'amount' => 1000,
+            'purchase_amount' => 15000,
+            'type' => 'regular'
+        ]);
+
+        $user->bonus_amount = 1000;
+        $user->save();
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->getJson('/api/bonus/info');
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'data' => [
+                    'bonus_amount' => 1000,
+                    'level' => BonusLevel::SILVER->value,
+                    'cashback_percent' => BonusLevel::SILVER->getCashbackPercent(),
+                    'total_purchase_amount' => 15000,
+                    'next_level' => BonusLevel::GOLD->value,
+                    'next_level_min_amount' => BonusLevel::GOLD->getMinPurchaseAmount(),
+                ]
+            ]);
+
+        // Проверяем, что прогресс к следующему уровню корректный
+        $responseData = $response->json('data');
+        $this->assertEquals(25, $responseData['progress_to_next_level']);
+    }
+
+    public function test_user_can_get_bonus_info_with_gold_level()
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        // Создаем бонусы для золотого уровня
+        $user->bonuses()->create([
+            'amount' => 3000,
+            'purchase_amount' => 35000,
+            'type' => 'regular'
+        ]);
+
+        $user->bonus_amount = 3000;
+        $user->save();
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->getJson('/api/bonus/info');
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'data' => [
+                    'bonus_amount' => 3000,
+                    'level' => BonusLevel::GOLD->value,
+                    'cashback_percent' => BonusLevel::GOLD->getCashbackPercent(),
+                    'total_purchase_amount' => 35000,
+                    'next_level' => null,
+                    'next_level_min_amount' => null,
+                ]
+            ]);
+
+        // Проверяем, что прогресс к следующему уровню 100% (максимальный уровень)
+        $responseData = $response->json('data');
+        $this->assertEquals(100, $responseData['progress_to_next_level']);
+    }
+
+    public function test_unauthorized_user_cannot_get_bonus_info()
+    {
+        $response = $this->getJson('/api/bonus/info');
+        $response->assertUnauthorized();
     }
 
     public function test_user_can_receive_bonus_for_purchase()
@@ -97,6 +214,7 @@ class BonusTest extends TestCase
                 NotificationType::BONUS_DEBIT,
                 [
                     'debit_amount' => 30,
+                    'remaining_bonus' => '70.00',
                     'phone' => $user->phone
                 ]
             );

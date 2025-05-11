@@ -8,6 +8,7 @@ use App\Http\Requests\Bonus\PromotionRequest;
 use App\Http\Responses\ApiJsonResponse;
 use App\Models\User;
 use App\Services\BonusService;
+use App\Services\PushNotificationService;
 use Carbon\Carbon;
 use Exception;
 
@@ -17,6 +18,17 @@ class BonusController extends Controller
         private BonusService $bonusService
     )
     {
+    }
+
+    public function info(): ApiJsonResponse
+    {
+        $user = auth()->user();
+        
+        $bonusInfo = $this->bonusService->getBonusInfo($user);
+
+        return new ApiJsonResponse(
+            data: $bonusInfo
+        );
     }
 
     public function credit(CreditRequest $request): ApiJsonResponse

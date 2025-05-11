@@ -6,6 +6,7 @@ use App\Models\Bonus;
 use App\Models\User;
 use Carbon\Carbon;
 use App\Enums\NotificationType;
+use App\Enums\BonusLevel;
 use Illuminate\Support\Facades\DB;
 
 class BonusService
@@ -13,6 +14,30 @@ class BonusService
     public function __construct(
         private readonly PushNotificationService $pushService
     ) {}
+
+    public function getBonusInfo(User $user): array
+    {
+        $totalPurchaseAmount = $user->bonuses()
+            ->where('type', 'regular')
+            ->sum('purchase_amount');
+
+        $currentLevel = BonusLevel::BRONZE;
+        foreach (BonusLevel::cases() as $level) {
+            if ($totalPurchaseAmount >= $level->getMinPurchaseAmount()) {
+                $currentLevel = $level;
+            }
+        }
+
+        return [
+            'bonus_amount' => $user->bonus_amount,
+            'level' => $currentLevel->value,
+            'cashback_percent' => $currentLevel->getCashbackPercent(),
+            'total_purchase_amount' => $totalPurchaseAmount,
+            'next_level' => $currentLevel->getNextLevel()?->value,
+            'next_level_min_amount' => $currentLevel->getNextLevelMinAmount(),
+            'progress_to_next_level' => $currentLevel->getProgressToNextLevel($totalPurchaseAmount),
+        ];
+    }
 
     public function recalculateUserBonus(User $user): void
     {
@@ -37,6 +62,8 @@ class BonusService
             ]);
 
             $this->recalculateUserBonus($user);
+
+            $user->addPurchaseAmount($purchaseAmount);
 
             $this->pushService->send(
                 $user,
