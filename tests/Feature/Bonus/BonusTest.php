@@ -4,7 +4,7 @@ namespace Tests\Feature\Bonus;
 
 use App\Models\User;
 use App\Services\BonusService;
-use App\Services\PushNotificationService;
+use App\Services\ExpoNotificationService;
 use App\Enums\NotificationType;
 use App\Enums\BonusLevel;
 use Tests\TestCase;
@@ -19,8 +19,8 @@ class BonusTest extends TestCase
     {
         parent::setUp();
 
-        $this->mockPushService = Mockery::mock(PushNotificationService::class);
-        $this->app->instance(PushNotificationService::class, $this->mockPushService);
+        $this->mockPushService = Mockery::mock(ExpoNotificationService::class);
+        $this->app->instance(ExpoNotificationService::class, $this->mockPushService);
 
         $this->app->instance(BonusService::class, new BonusService($this->mockPushService));
     }

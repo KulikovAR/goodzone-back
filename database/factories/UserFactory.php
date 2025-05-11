@@ -25,7 +25,7 @@ class UserFactory extends Factory
             'phone_verified_at' => now(),
             'password' => Hash::make('test'),
             'remember_token' => Str::random(10),
-            'device_token' => 'device_token_mock_value'.fake()->numerify('7##########'),
+            'device_token' => 'ExponentPushToken[' . Str::random(22) . ']',
         ];
     }
 }

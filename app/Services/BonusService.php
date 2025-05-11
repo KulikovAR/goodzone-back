@@ -13,7 +13,7 @@ use App\Http\Resources\BonusCollection;
 class BonusService
 {
     public function __construct(
-        private readonly PushNotificationService $pushService
+        private readonly ExpoNotificationService $pushService
     ) {}
 
     public function getBonusInfo(User $user): array

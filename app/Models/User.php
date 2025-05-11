@@ -12,6 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use NotificationChannels\Expo\ExpoPushToken;
 
 class User extends Authenticatable implements FilamentUser
 {
@@ -57,6 +58,7 @@ class User extends Authenticatable implements FilamentUser
         'deleted_at'        => 'datetime',
         'password'          => 'hashed',
         'bonus_amount'      => 'decimal:2',
+        'device_token'      => ExpoPushToken::class,
     ];
 
     public function canAccessPanel(Panel $panel): bool
@@ -72,5 +74,10 @@ class User extends Authenticatable implements FilamentUser
     public function addPurchaseAmount($amount)
     {
         $this->purchase_amount += $amount;
+    }
+
+    public function routeNotificationForExpo(): ?ExpoPushToken
+    {
+        return $this->device_token;
     }
 }

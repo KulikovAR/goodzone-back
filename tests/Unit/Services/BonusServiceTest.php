@@ -6,7 +6,7 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Bonus;
 use App\Services\BonusService;
-use App\Services\PushNotificationService;
+use App\Services\ExpoNotificationService;
 use App\Enums\NotificationType;
 use Carbon\Carbon;
 use Mockery;
@@ -15,13 +15,13 @@ use Mockery\LegacyMockInterface;
 
 class BonusServiceTest extends TestCase
 {
-    private PushNotificationService|MockInterface|LegacyMockInterface $mockPushService;
+    private ExpoNotificationService|MockInterface|LegacyMockInterface $mockPushService;
     private BonusService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->mockPushService = Mockery::mock(PushNotificationService::class);
+        $this->mockPushService = Mockery::mock(ExpoNotificationService::class);
         $this->service = new BonusService($this->mockPushService);
     }
 

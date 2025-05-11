@@ -59,4 +59,8 @@ return [
         'host' => env('ONE_C_HOST'),
         'token' => env('ONE_C_TOKEN'),
     ],
+
+    'expo' => [
+        'access_token' => env('EXPO_ACCESS_TOKEN'),
+    ],
 ];

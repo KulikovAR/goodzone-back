@@ -11,6 +11,7 @@
         "filament/filament": "^3.2",
         "guzzlehttp/guzzle": "^7.9",
         "kreait/laravel-firebase": "^6.0",
+        "laravel-notification-channels/expo": "^2.1",
         "laravel/framework": "^11.31",
         "laravel/sanctum": "*",
         "laravel/telescope": "^5.7",
