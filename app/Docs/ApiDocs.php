@@ -5,16 +5,26 @@ namespace App\Docs;
 /**
  * @OA\Info(
  *      version="1.0.0",
- *      title="API Documentation for example back-end service",
- *      description="Documentation API",
+ *      title="Modnova API",
+ *      description="API для системы лояльности Modnova. Предоставляет функционал для управления бонусной программой, включая начисление и списание бонусов, отслеживание уровня пользователя, историю операций и управление профилем пользователя.
+ *      
+ *      Технологии:
+ *      - Laravel 11.x
+ *      - PHP 8.3
+ *      - MySQL
+ *      - Laravel Sanctum для аутентификации
+ *      - Firebase для push-уведомлений
+ *      - Expo для мобильных уведомлений
+ *      - Spatie Permission для управления ролями
+ *      - Filament для админ-панели",
  *
  *      @OA\Contact(
  *          email="nfs2025@mail.ru"
  *      ),
  *
  *      @OA\License(
- *          name="Apache 2.0",
- *          url="http://www.apache.org/licenses/LICENSE-2.0.html"
+ *          name="Proprietary",
+ *          url="https://modnova.ru"
  *      )
  * )
  *
