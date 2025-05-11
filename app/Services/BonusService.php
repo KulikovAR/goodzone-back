@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use App\Enums\NotificationType;
 use App\Enums\BonusLevel;
 use Illuminate\Support\Facades\DB;
+use App\Http\Resources\BonusCollection;
 
 class BonusService
 {
@@ -132,25 +133,12 @@ class BonusService
         });
     }
 
-    public function getBonusHistory(User $user): array
+    public function getBonusHistory(User $user): BonusCollection
     {
         $bonuses = $user->bonuses()
             ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function (Bonus $bonus) {
-                return [
-                    'id' => $bonus->id,
-                    'amount' => $bonus->amount,
-                    'type' => $bonus->type,
-                    'purchase_amount' => $bonus->purchase_amount,
-                    'expires_at' => $bonus->expires_at?->format('Y-m-d\TH:i:s'),
-                    'created_at' => $bonus->created_at->format('Y-m-d\TH:i:s'),
-                ];
-            });
+            ->get();
 
-        return [
-            'history' => $bonuses,
-            'total_count' => $bonuses->count(),
-        ];
+        return new BonusCollection($bonuses);
     }
 }
