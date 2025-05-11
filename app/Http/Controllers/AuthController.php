@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 class AuthController extends Controller
 {
     private SmsService $smsService;
+    private bool       $smsEnable = false;
 
     public function __construct(
         private VerificationService $verificationService,
@@ -35,7 +36,7 @@ class AuthController extends Controller
         $user->code_send_at = now();
         $user->save();
 
-        if (app()->environment('local')) {
+        if ($this->smsEnable) {
             try {
                 $sessionId = $this->smsService->getSessionId();
                 if ($sessionId) {

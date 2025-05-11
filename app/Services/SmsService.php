@@ -31,7 +31,8 @@ class SmsService
             ]);
 
             $data = json_decode($response->getBody()->getContents(), true);
-            return $data['SessionID'] ?? null;
+
+            return $data;
         } catch (RequestException $e) {
 
             return null;
