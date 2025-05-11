@@ -72,7 +72,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function addPurchaseAmount($amount)
     {
-        $this->purchase_amount += $amount;
+        $this->purchase_amount += (int) $amount;
     }
 
     public function routeNotificationForExpo(): ?ExpoPushToken

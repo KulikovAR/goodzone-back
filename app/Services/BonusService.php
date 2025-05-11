@@ -49,7 +49,7 @@ class BonusService
             })
             ->sum('amount');
 
-        $user->update(['bonus_amount' => $totalBonus]);
+        $user->update(['bonus_amount' => (int) $totalBonus]);
     }
 
     public function creditBonus(User $user, float $amount, float $purchaseAmount): Bonus
