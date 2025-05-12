@@ -10,8 +10,7 @@ class BonusController
      *     summary="Получение информации о бонусах",
      *     description="Возвращает текущий баланс бонусов, уровень пользователя и информацию о прогрессе к следующему уровню",
      *     tags={"Bonus"},
-     *     security={{ "sanctum": {} }},
-     *
+     *     security={{"api": {}}},
      *     @OA\Response(
      *         response=200,
      *         description="Успешное получение информации",
@@ -53,8 +52,7 @@ class BonusController
      *     summary="Начисление бонусов",
      *     description="Начисляет бонусы пользователю за покупку",
      *     tags={"Bonus"},
-     *     security={{ "sanctum": {} }},
-     *
+     *     security={{"api": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -124,8 +122,7 @@ class BonusController
      *     summary="Списание бонусов",
      *     description="Списывает бонусы у пользователя",
      *     tags={"Bonus"},
-     *     security={{ "sanctum": {} }},
-     *
+     *     security={{"api": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -186,8 +183,7 @@ class BonusController
      *     summary="Начисление акционных бонусов",
      *     description="Начисляет акционные бонусы пользователю с датой истечения",
      *     tags={"Bonus"},
-     *     security={{ "sanctum": {} }},
-     *
+     *     security={{"api": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -257,8 +253,7 @@ class BonusController
      *     summary="Получение истории бонусов",
      *     description="Возвращает историю начисления и списания бонусов пользователя",
      *     tags={"Bonus"},
-     *     security={{ "sanctum": {} }},
-     *
+     *     security={{"api": {}}},
      *     @OA\Response(
      *         response=200,
      *         description="Успешное получение истории",

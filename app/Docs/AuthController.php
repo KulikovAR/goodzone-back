@@ -10,7 +10,7 @@ class AuthController
      *     summary="Запрос SMS-кода для аутентификации",
      *     description="Создает пользователя если не существует, генерирует SMS-код и обновляет время отправки кода",
      *     tags={"Auth"},
-     *
+     *     security={{"api": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -52,7 +52,7 @@ class AuthController
      *     summary="Верификация SMS-кода",
      *     description="Проверяет SMS-код, устанавливает время верификации телефона при первой проверке и возвращает токен доступа",
      *     tags={"Auth"},
-     *
+     *     security={{"api": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(

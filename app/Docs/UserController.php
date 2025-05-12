@@ -10,8 +10,7 @@ class UserController
      *     summary="Получение данных пользователя",
      *     description="Возвращает данные авторизованного пользователя",
      *     tags={"User"},
-     *     security={{ "sanctum": {} }},
-     *
+     *     security={{"api": {}}},
      *     @OA\Response(
      *         response=200,
      *         description="Успешный запрос",
@@ -49,8 +48,7 @@ class UserController
      *     summary="Обновление данных пользователя",
      *     description="Обновляет данные авторизованного пользователя",
      *     tags={"User"},
-     *     security={{ "sanctum": {} }},
-     *
+     *     security={{"api": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
