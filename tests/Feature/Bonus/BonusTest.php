@@ -38,12 +38,12 @@ class BonusTest extends TestCase
 
         // Создаем бонусы для разных уровней
         $user->bonuses()->create([
-            'amount' => 100,
+            'amount' => 5000,
             'purchase_amount' => 5000,
             'type' => 'regular'
         ]);
 
-        $user->bonus_amount = 100;
+        $user->bonus_amount = 5000;
         $user->save();
 
         $response = $this->withHeaders([
@@ -54,12 +54,12 @@ class BonusTest extends TestCase
             ->assertJson([
                 'ok' => true,
                 'data' => [
-                    'bonus_amount' => 100,
+                    'bonus_amount' => 5000,
                     'level' => BonusLevel::BRONZE->value,
                     'cashback_percent' => BonusLevel::BRONZE->getCashbackPercent(),
                     'total_purchase_amount' => 5000,
                     'next_level' => BonusLevel::SILVER->value,
-                    'next_level_min_amount' => BonusLevel::SILVER->getMinPurchaseAmount(),
+                    'next_level_min_amount' => BonusLevel::SILVER->getMinBonusAmount(),
                 ]
             ]);
 
@@ -74,12 +74,12 @@ class BonusTest extends TestCase
 
         // Создаем бонусы для серебряного уровня
         $user->bonuses()->create([
-            'amount' => 1000,
+            'amount' => 15000,
             'purchase_amount' => 15000,
             'type' => 'regular'
         ]);
 
-        $user->bonus_amount = 1000;
+        $user->bonus_amount = 15000;
         $user->save();
 
         $response = $this->withHeaders([
@@ -90,12 +90,12 @@ class BonusTest extends TestCase
             ->assertJson([
                 'ok' => true,
                 'data' => [
-                    'bonus_amount' => 1000,
+                    'bonus_amount' => 15000,
                     'level' => BonusLevel::SILVER->value,
                     'cashback_percent' => BonusLevel::SILVER->getCashbackPercent(),
                     'total_purchase_amount' => 15000,
                     'next_level' => BonusLevel::GOLD->value,
-                    'next_level_min_amount' => BonusLevel::GOLD->getMinPurchaseAmount(),
+                    'next_level_min_amount' => BonusLevel::GOLD->getMinBonusAmount(),
                 ]
             ]);
 
@@ -111,12 +111,12 @@ class BonusTest extends TestCase
 
         // Создаем бонусы для золотого уровня
         $user->bonuses()->create([
-            'amount' => 3000,
+            'amount' => 35000,
             'purchase_amount' => 35000,
             'type' => 'regular'
         ]);
 
-        $user->bonus_amount = 3000;
+        $user->bonus_amount = 35000;
         $user->save();
 
         $response = $this->withHeaders([
@@ -127,7 +127,7 @@ class BonusTest extends TestCase
             ->assertJson([
                 'ok' => true,
                 'data' => [
-                    'bonus_amount' => 3000,
+                    'bonus_amount' => 35000,
                     'level' => BonusLevel::GOLD->value,
                     'cashback_percent' => BonusLevel::GOLD->getCashbackPercent(),
                     'total_purchase_amount' => 35000,
@@ -383,13 +383,13 @@ class BonusTest extends TestCase
             ]);
 
         $responseData = $response->json('data');
-        
+
         // Проверяем общее количество
         $this->assertEquals(3, $responseData['total_count']);
 
         // Проверяем, что все бонусы присутствуют в ответе
         $history = collect($responseData['history']);
-        
+
         $this->assertTrue($history->contains(function ($item) use ($regularBonus) {
             return $item['id'] === $regularBonus->id
                 && $item['amount'] === number_format($regularBonus->amount, 2, '.', '')

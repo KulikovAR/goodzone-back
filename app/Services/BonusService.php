@@ -20,7 +20,9 @@ class BonusService
 
     public function getBonusInfo(User $user): array
     {
-        $totalPurchaseAmount = $user->purchase_amount;
+        $totalPurchaseAmount = (int) $user->bonuses()
+            ->where('type', 'regular')
+            ->sum('purchase_amount');
 
         $totalBonusAmount = (int) $user->bonus_amount;
 
