@@ -2,41 +2,43 @@
 
 namespace App\Services;
 
+use App\Enums\BonusLevel;
+use App\Enums\NotificationType;
+use App\Http\Resources\BonusCollection;
 use App\Models\Bonus;
 use App\Models\User;
 use Carbon\Carbon;
-use App\Enums\NotificationType;
-use App\Enums\BonusLevel;
 use Illuminate\Support\Facades\DB;
-use App\Http\Resources\BonusCollection;
 
 class BonusService
 {
     public function __construct(
         private readonly ExpoNotificationService $pushService
-    ) {}
+    )
+    {
+    }
 
     public function getBonusInfo(User $user): array
     {
-        $totalPurchaseAmount = $user->bonuses()
-            ->where('type', 'regular')
-            ->sum('purchase_amount');
+        $totalPurchaseAmount = $user->purchase_amount;
+
+        $totalBonusAmount = (int) $user->bonus_amount;
 
         $currentLevel = BonusLevel::BRONZE;
         foreach (BonusLevel::cases() as $level) {
-            if ($totalPurchaseAmount >= $level->getMinPurchaseAmount()) {
+            if ($totalBonusAmount >= $level->getMinBonusAmount()) {
                 $currentLevel = $level;
             }
         }
 
         return [
-            'bonus_amount' => $user->bonus_amount,
-            'level' => $currentLevel->value,
-            'cashback_percent' => $currentLevel->getCashbackPercent(),
-            'total_purchase_amount' => $totalPurchaseAmount,
-            'next_level' => $currentLevel->getNextLevel()?->value,
-            'next_level_min_amount' => $currentLevel->getNextLevelMinAmount(),
-            'progress_to_next_level' => $currentLevel->getProgressToNextLevel($totalPurchaseAmount),
+            'bonus_amount'           => $totalBonusAmount,
+            'level'                  => $currentLevel->value,
+            'cashback_percent'       => $currentLevel->getCashbackPercent(),
+            'total_purchase_amount'  => $totalPurchaseAmount,
+            'next_level'             => $currentLevel->getNextLevel()?->value,
+            'next_level_min_amount'  => $currentLevel->getNextLevelMinAmount(),
+            'progress_to_next_level' => $currentLevel->getProgressToNextLevel($totalBonusAmount),
         ];
     }
 
@@ -56,10 +58,10 @@ class BonusService
     {
         return DB::transaction(function () use ($user, $amount, $purchaseAmount) {
             $bonus = Bonus::create([
-                'user_id' => $user->id,
-                'amount' => $amount,
+                'user_id'         => $user->id,
+                'amount'          => $amount,
                 'purchase_amount' => $purchaseAmount,
-                'type' => 'regular'
+                'type'            => 'regular',
             ]);
 
             $this->recalculateUserBonus($user);
@@ -70,9 +72,9 @@ class BonusService
                 $user,
                 NotificationType::BONUS_CREDIT,
                 [
-                    'amount' => $amount,
+                    'amount'          => $amount,
                     'purchase_amount' => $purchaseAmount,
-                    'phone' => $user->phone
+                    'phone'           => $user->phone,
                 ]
             );
 
@@ -89,8 +91,8 @@ class BonusService
 
             Bonus::create([
                 'user_id' => $user->id,
-                'amount' => -$amount,
-                'type' => 'regular'
+                'amount'  => -$amount,
+                'type'    => 'regular',
             ]);
 
             $this->recalculateUserBonus($user);
@@ -99,9 +101,9 @@ class BonusService
                 $user,
                 NotificationType::BONUS_DEBIT,
                 [
-                    'debit_amount' => $amount,
+                    'debit_amount'    => $amount,
                     'remaining_bonus' => number_format($user->bonus_amount, 2, '.', ''),
-                    'phone' => $user->phone
+                    'phone'           => $user->phone,
                 ]
             );
         });
@@ -111,10 +113,10 @@ class BonusService
     {
         return DB::transaction(function () use ($user, $amount, $expiryDate) {
             $bonus = Bonus::create([
-                'user_id' => $user->id,
-                'amount' => $amount,
-                'type' => 'promotional',
-                'expires_at' => $expiryDate
+                'user_id'    => $user->id,
+                'amount'     => $amount,
+                'type'       => 'promotional',
+                'expires_at' => $expiryDate,
             ]);
 
             $this->recalculateUserBonus($user);
@@ -124,8 +126,8 @@ class BonusService
                 NotificationType::BONUS_PROMOTION,
                 [
                     'bonus_amount' => $amount,
-                    'expiry_date' => $expiryDate->format('Y-m-d\TH:i:s'),
-                    'phone' => $user->phone
+                    'expiry_date'  => $expiryDate->format('Y-m-d\TH:i:s'),
+                    'phone'        => $user->phone,
                 ]
             );
 
