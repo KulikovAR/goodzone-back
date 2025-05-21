@@ -200,7 +200,8 @@ class BonusTest extends TestCase
     public function test_user_can_receive_bonus_for_purchase()
     {
         $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
 
         $this->mockPushService->shouldReceive('send')
             ->once()
@@ -242,7 +243,8 @@ class BonusTest extends TestCase
     public function test_user_can_debit_bonus()
     {
         $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
 
         $user->bonus_amount = 100;
         $user->save();
@@ -295,7 +297,8 @@ class BonusTest extends TestCase
     public function test_user_cannot_debit_more_than_available()
     {
         $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
 
         // Создаем бонус
         $user->bonuses()->create([
@@ -333,7 +336,8 @@ class BonusTest extends TestCase
     public function test_user_can_receive_promotional_bonus()
     {
         $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
         $expiryDate = now()->addYear();
 
         $this->mockPushService->shouldReceive('send')
