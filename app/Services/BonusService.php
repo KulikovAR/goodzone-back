@@ -38,11 +38,11 @@ class BonusService
         }
 
         return [
-            'bonus_amount' => $user->bonus_amount,
+            'bonus_amount' => (int) $user->bonus_amount,
             'promotional_bonus_amount' => (int) $promotionalAmount,
             'level' => $currentLevel->value,
             'cashback_percent' => $currentLevel->getCashbackPercent(),
-            'total_purchase_amount' => $totalPurchaseAmount,
+            'total_purchase_amount' => (int) $totalPurchaseAmount,
             'next_level' => $currentLevel->getNextLevel()?->value,
             'next_level_min_amount' => $currentLevel->getNextLevelMinAmount(),
             'progress_to_next_level' => $currentLevel->getProgressToNextLevel($totalPurchaseAmount),
@@ -79,8 +79,8 @@ class BonusService
                 $user,
                 NotificationType::BONUS_CREDIT,
                 [
-                    'amount' => $amount,
-                    'purchase_amount' => $purchaseAmount,
+                    'amount' => (int) $amount,
+                    'purchase_amount' => (int) $purchaseAmount,
                     'phone' => $user->phone
                 ]
             );
@@ -108,8 +108,8 @@ class BonusService
                 $user,
                 NotificationType::BONUS_DEBIT,
                 [
-                    'debit_amount' => $amount,
-                    'remaining_bonus' => number_format($user->bonus_amount, 2, '.', ''),
+                    'debit_amount' => (int) $amount,
+                    'remaining_bonus' => (int) $user->bonus_amount,
                     'phone' => $user->phone
                 ]
             );
@@ -132,7 +132,7 @@ class BonusService
                 $user,
                 NotificationType::BONUS_PROMOTION,
                 [
-                    'bonus_amount' => $amount,
+                    'bonus_amount' => (int) $amount,
                     'expiry_date' => $expiryDate->format('Y-m-d\TH:i:s'),
                     'phone' => $user->phone
                 ]

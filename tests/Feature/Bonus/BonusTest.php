@@ -264,7 +264,7 @@ class BonusTest extends TestCase
                 NotificationType::BONUS_DEBIT,
                 [
                     'debit_amount' => 30,
-                    'remaining_bonus' => '70.00',
+                    'remaining_bonus' => '70',
                     'phone' => $user->phone
                 ]
             );
@@ -442,15 +442,15 @@ class BonusTest extends TestCase
         
         $this->assertTrue($history->contains(function ($item) use ($regularBonus) {
             return $item['id'] === $regularBonus->id
-                && $item['amount'] === number_format($regularBonus->amount, 2, '.', '')
+                && $item['amount'] === (int) $regularBonus->amount
                 && $item['type'] === 'regular'
-                && $item['purchase_amount'] === number_format($regularBonus->purchase_amount, 2, '.', '')
+                && $item['purchase_amount'] === (int) $regularBonus->purchase_amount
                 && $item['expires_at'] === null;
         }));
 
         $this->assertTrue($history->contains(function ($item) use ($promotionalBonus) {
             return $item['id'] === $promotionalBonus->id
-                && $item['amount'] === number_format($promotionalBonus->amount, 2, '.', '')
+                && $item['amount'] === (int) $promotionalBonus->amount
                 && $item['type'] === 'promotional'
                 && $item['purchase_amount'] === null
                 && $item['expires_at'] === $promotionalBonus->expires_at->format('Y-m-d\TH:i:s');
@@ -458,7 +458,7 @@ class BonusTest extends TestCase
 
         $this->assertTrue($history->contains(function ($item) use ($debitBonus) {
             return $item['id'] === $debitBonus->id
-                && $item['amount'] === number_format($debitBonus->amount, 2, '.', '')
+                && $item['amount'] === (int) $debitBonus->amount
                 && $item['type'] === 'regular'
                 && $item['purchase_amount'] === null
                 && $item['expires_at'] === null;
