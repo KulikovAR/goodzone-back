@@ -133,7 +133,7 @@ class BonusService
                 NotificationType::BONUS_PROMOTION,
                 [
                     'bonus_amount' => (int) $amount,
-                    'expiry_date' => $expiryDate->format('Y-m-d\TH:i:s'),
+                    'expiry_date' => $expiryDate->format('d.m.Y H:i'),
                     'phone' => $user->phone
                 ]
             );
