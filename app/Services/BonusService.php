@@ -22,6 +22,14 @@ class BonusService
             ->where('type', 'regular')
             ->sum('purchase_amount');
 
+        $promotionalAmount = $user->bonuses()
+            ->where('type', 'promotional')
+            ->where(function ($query) {
+                $query->where('expires_at', '>', now())
+                    ->orWhereNull('expires_at');
+            })
+            ->sum('amount');
+
         $currentLevel = BonusLevel::BRONZE;
         foreach (BonusLevel::cases() as $level) {
             if ($totalPurchaseAmount >= $level->getMinPurchaseAmount()) {
@@ -31,6 +39,7 @@ class BonusService
 
         return [
             'bonus_amount' => $user->bonus_amount,
+            'promotional_bonus_amount' => (int) $promotionalAmount,
             'level' => $currentLevel->value,
             'cashback_percent' => $currentLevel->getCashbackPercent(),
             'total_purchase_amount' => $totalPurchaseAmount,

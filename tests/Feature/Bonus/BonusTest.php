@@ -67,6 +67,56 @@ class BonusTest extends TestCase
         $this->assertEquals(50, $responseData['progress_to_next_level']);
     }
 
+    public function test_user_can_get_bonus_info_with_promo_amount()
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $user->bonuses()->create([
+            'amount' => 100,
+            'purchase_amount' => 5000,
+            'type' => 'regular'
+        ]);
+
+        $user->bonuses()->create([
+            'amount' => 200,
+            'type' => 'promotional',
+            'expires_at' => now()->addDays(30),
+            'created_at' => now()->subDay()
+        ]);
+
+        $user->bonuses()->create([
+            'amount' => 300,
+            'type' => 'promotional',
+            'expires_at' => now()->addDays(30),
+            'created_at' => now()->subDay()
+        ]);
+
+        $user->bonus_amount = 600;
+        $user->save();
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->getJson('/api/bonus/info');
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'data' => [
+                    'bonus_amount' => 600,
+                    'promotional_bonus_amount' => 500,
+                    'level' => BonusLevel::BRONZE->value,
+                    'cashback_percent' => BonusLevel::BRONZE->getCashbackPercent(),
+                    'total_purchase_amount' => 5000,
+                    'next_level' => BonusLevel::SILVER->value,
+                    'next_level_min_amount' => BonusLevel::SILVER->getMinPurchaseAmount(),
+                ]
+            ]);
+
+        $responseData = $response->json('data');
+        $this->assertEquals(50, $responseData['progress_to_next_level']);
+    }
+
     public function test_user_can_get_bonus_info_with_silver_level()
     {
         $user = User::factory()->create();
