@@ -67,6 +67,56 @@ class BonusTest extends TestCase
         $this->assertEquals(50, $responseData['progress_to_next_level']);
     }
 
+    public function test_user_can_get_bonus_info_with_promo_amount()
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $user->bonuses()->create([
+            'amount' => 100,
+            'purchase_amount' => 5000,
+            'type' => 'regular'
+        ]);
+
+        $user->bonuses()->create([
+            'amount' => 200,
+            'type' => 'promotional',
+            'expires_at' => now()->addDays(30),
+            'created_at' => now()->subDay()
+        ]);
+
+        $user->bonuses()->create([
+            'amount' => 300,
+            'type' => 'promotional',
+            'expires_at' => now()->addDays(30),
+            'created_at' => now()->subDay()
+        ]);
+
+        $user->bonus_amount = 600;
+        $user->save();
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->getJson('/api/bonus/info');
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'data' => [
+                    'bonus_amount' => 600,
+                    'promotional_bonus_amount' => 500,
+                    'level' => BonusLevel::BRONZE->value,
+                    'cashback_percent' => BonusLevel::BRONZE->getCashbackPercent(),
+                    'total_purchase_amount' => 5000,
+                    'next_level' => BonusLevel::SILVER->value,
+                    'next_level_min_amount' => BonusLevel::SILVER->getMinPurchaseAmount(),
+                ]
+            ]);
+
+        $responseData = $response->json('data');
+        $this->assertEquals(50, $responseData['progress_to_next_level']);
+    }
+
     public function test_user_can_get_bonus_info_with_silver_level()
     {
         $user = User::factory()->create();
@@ -150,7 +200,8 @@ class BonusTest extends TestCase
     public function test_user_can_receive_bonus_for_purchase()
     {
         $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
 
         $this->mockPushService->shouldReceive('send')
             ->once()
@@ -192,7 +243,8 @@ class BonusTest extends TestCase
     public function test_user_can_debit_bonus()
     {
         $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
 
         $user->bonus_amount = 100;
         $user->save();
@@ -214,7 +266,7 @@ class BonusTest extends TestCase
                 NotificationType::BONUS_DEBIT,
                 [
                     'debit_amount' => 30,
-                    'remaining_bonus' => '70.00',
+                    'remaining_bonus' => '70',
                     'phone' => $user->phone
                 ]
             );
@@ -245,7 +297,8 @@ class BonusTest extends TestCase
     public function test_user_cannot_debit_more_than_available()
     {
         $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
 
         // Создаем бонус
         $user->bonuses()->create([
@@ -283,7 +336,8 @@ class BonusTest extends TestCase
     public function test_user_can_receive_promotional_bonus()
     {
         $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
         $expiryDate = now()->addYear();
 
         $this->mockPushService->shouldReceive('send')
@@ -293,7 +347,7 @@ class BonusTest extends TestCase
                 NotificationType::BONUS_PROMOTION,
                 [
                     'bonus_amount' => 100,
-                    'expiry_date' => $expiryDate->format('Y-m-d\TH:i:s'),
+                    'expiry_date' => $expiryDate->format('d.m.Y H:i'),
                     'phone' => $user->phone
                 ]
             );
@@ -392,15 +446,15 @@ class BonusTest extends TestCase
         
         $this->assertTrue($history->contains(function ($item) use ($regularBonus) {
             return $item['id'] === $regularBonus->id
-                && $item['amount'] === number_format($regularBonus->amount, 2, '.', '')
+                && $item['amount'] === (int) $regularBonus->amount
                 && $item['type'] === 'regular'
-                && $item['purchase_amount'] === number_format($regularBonus->purchase_amount, 2, '.', '')
+                && $item['purchase_amount'] === (int) $regularBonus->purchase_amount
                 && $item['expires_at'] === null;
         }));
 
         $this->assertTrue($history->contains(function ($item) use ($promotionalBonus) {
             return $item['id'] === $promotionalBonus->id
-                && $item['amount'] === number_format($promotionalBonus->amount, 2, '.', '')
+                && $item['amount'] === (int) $promotionalBonus->amount
                 && $item['type'] === 'promotional'
                 && $item['purchase_amount'] === null
                 && $item['expires_at'] === $promotionalBonus->expires_at->format('Y-m-d\TH:i:s');
@@ -408,7 +462,7 @@ class BonusTest extends TestCase
 
         $this->assertTrue($history->contains(function ($item) use ($debitBonus) {
             return $item['id'] === $debitBonus->id
-                && $item['amount'] === number_format($debitBonus->amount, 2, '.', '')
+                && $item['amount'] === (int) $debitBonus->amount
                 && $item['type'] === 'regular'
                 && $item['purchase_amount'] === null
                 && $item['expires_at'] === null;

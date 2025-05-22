@@ -11,11 +11,11 @@ class BonusResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'amount' => number_format($this->amount, 2, '.', ''),
+            'amount' => (int) $this->amount,
             'type' => $this->type,
-            'purchase_amount' => $this->purchase_amount ? number_format($this->purchase_amount, 2, '.', '') : null,
+            'purchase_amount' => $this->purchase_amount ? (int) $this->purchase_amount : null,
             'expires_at' => $this->expires_at?->format('Y-m-d\TH:i:s'),
             'created_at' => $this->created_at->format('Y-m-d\TH:i:s'),
         ];
     }
-} 
+}

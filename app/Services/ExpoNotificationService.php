@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Enums\NotificationType;
 use NotificationChannels\Expo\ExpoMessage;
 use Illuminate\Notifications\Notification;
+use Carbon\Carbon;
 
 class ExpoNotificationService
 {
@@ -37,7 +38,8 @@ class ExpoNotificationService
                     NotificationType::BONUS_DEBIT => ExpoMessage::create('Списание бонусов')
                         ->body("С вашего счета списано {$this->data['debit_amount']} бонусов. Остаток: {$this->data['remaining_bonus']}"),
                     NotificationType::BONUS_PROMOTION => ExpoMessage::create('Промо-бонусы')
-                        ->body("Вам начислено {$this->data['bonus_amount']} промо-бонусов. Действуют до {$this->data['expiry_date']}"),
+                        ->body("Вам начислено {$this->data['bonus_amount']} промо-бонусов. Действуют до " . 
+                            Carbon::parse($this->data['expiry_date'])->format('d.m.Y H:i')),
                     default => ExpoMessage::create('Уведомление')
                         ->body('Новое уведомление')
                 };
@@ -49,4 +51,4 @@ class ExpoNotificationService
             }
         };
     }
-} 
+}

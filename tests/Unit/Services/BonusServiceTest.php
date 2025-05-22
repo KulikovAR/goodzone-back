@@ -164,7 +164,7 @@ class BonusServiceTest extends TestCase
                 NotificationType::BONUS_PROMOTION,
                 [
                     'bonus_amount' => 100,
-                    'expiry_date' => $expiryDate->format('Y-m-d\TH:i:s'),
+                    'expiry_date' => $expiryDate->format('d.m.Y H:i'),
                     'phone' => $user->phone
                 ]
             );

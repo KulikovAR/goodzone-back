@@ -5,6 +5,7 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use App\Enums\UserRole;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
@@ -26,6 +27,18 @@ class UserFactory extends Factory
             'password' => Hash::make('test'),
             'remember_token' => Str::random(10),
             'device_token' => 'ExponentPushToken[' . Str::random(22) . ']',
+            'role' => UserRole::USER->value,
         ];
+    }
+
+    public function oneC(): static
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'role' => UserRole::ONE_C,
+                'name' => '1C Integration',
+                'phone' => '1c-' . fake()->unique()->numerify('##########'),
+            ];
+        });
     }
 }
