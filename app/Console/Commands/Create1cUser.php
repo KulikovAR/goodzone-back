@@ -24,10 +24,6 @@ class Create1cUser extends Command
             ]);
         }
 
-        // Удаляем старые токены
-        $user->tokens()->delete();
-
-        // Создаем новый токен
         $token = $user->createToken('1c-token')->plainTextToken;
 
         $this->info('1C User Token: ' . $token);
