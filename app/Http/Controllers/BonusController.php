@@ -9,6 +9,7 @@ use App\Http\Responses\ApiJsonResponse;
 use App\Models\User;
 use App\Services\BonusService;
 use App\Services\PushNotificationService;
+use App\Enums\BonusLevel;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Auth;
@@ -21,10 +22,11 @@ class BonusController extends Controller
     {
     }
 
+
     public function info(): ApiJsonResponse
     {
         $user = Auth::user();
-        
+
         $bonusInfo = $this->bonusService->getBonusInfo($user);
 
         return new ApiJsonResponse(
@@ -89,11 +91,26 @@ class BonusController extends Controller
     public function history(): ApiJsonResponse
     {
         $user = Auth::user();
-        
+
         $history = $this->bonusService->getBonusHistory($user);
 
         return new ApiJsonResponse(
             data: $history
+        );
+    }
+
+    public function levels(): ApiJsonResponse
+    {
+        $levels = collect(BonusLevel::cases())->map(function (BonusLevel $level) {
+            return [
+                'name' => $level->value,
+                'cashback_percent' => $level->getCashbackPercent(),
+                'min_purchase_amount' => $level->getMinPurchaseAmount(),
+            ];
+        });
+
+        return new ApiJsonResponse(
+            data: $levels
         );
     }
 }

@@ -295,4 +295,46 @@ class BonusController
     {
         //
     }
+
+    /**
+     * @OA\Get(
+     *     path="/bonus-level",
+     *     summary="Получение информации о бонусных уровнях",
+     *     description="Возвращает информацию о всех доступных бонусных уровнях и их условиях",
+     *     tags={"Bonus"},
+     *     security={{ "sanctum": {} }},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Успешное получение информации",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="ok", type="boolean", example=true),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="name", type="string", example="bronze", enum={"bronze", "silver", "gold"}),
+     *                     @OA\Property(property="cashback_percent", type="integer", example=5),
+     *                     @OA\Property(property="min_purchase_amount", type="integer", example=0)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Не авторизован",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     )
+     * )
+     */
+    public function levels()
+    {
+        //
+    }
 }

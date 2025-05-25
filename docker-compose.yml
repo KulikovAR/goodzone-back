@@ -15,8 +15,8 @@ services:
       - ./:/var/www
     networks:
       - goodzone
-    depends_on:
-      - redis
+#    depends_on:
+#      - redis
 
   db:
     platform: linux/x86_64 #macOS
@@ -51,16 +51,16 @@ services:
       - LETSENCRYPT_HOST=${GOODZONE_HOSTNAME}
       - LETSENCRYPT_EMAIL=${GOODZONE_EMAIL}
 
-  redis:
-    image: redis:alpine
-    container_name: goodzone-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - ./docker-compose/redis:/data
-    networks:
-      - goodzone
+#  redis:
+#    image: redis:alpine
+#    container_name: goodzone-redis
+#    restart: unless-stopped
+#    ports:
+#      - "6379:6379"
+#    volumes:
+#      - ./docker-compose/redis:/data
+#    networks:
+#      - goodzone
 
 networks:
   goodzone:

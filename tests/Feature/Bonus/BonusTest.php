@@ -478,4 +478,42 @@ class BonusTest extends TestCase
         $response = $this->getJson('/api/bonus/history');
         $response->assertUnauthorized();
     }
+
+    public function test_user_can_get_bonus_levels()
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->getJson('/api/bonus-level');
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'data' => [
+                    [
+                        'name' => 'bronze',
+                        'cashback_percent' => 5,
+                        'min_purchase_amount' => 0
+                    ],
+                    [
+                        'name' => 'silver',
+                        'cashback_percent' => 10,
+                        'min_purchase_amount' => 10000
+                    ],
+                    [
+                        'name' => 'gold',
+                        'cashback_percent' => 15,
+                        'min_purchase_amount' => 30000
+                    ]
+                ]
+            ]);
+    }
+
+    public function test_unauthorized_user_cannot_get_bonus_levels()
+    {
+        $response = $this->getJson('/api/bonus-level');
+        $response->assertUnauthorized();
+    }
 }

@@ -16,6 +16,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bonus/history', [BonusController::class, 'history']);
     Route::put('/user/update', [UserController::class, 'update']);
     Route::get('/user', [UserController::class, 'show']);
+    Route::get('/bonus-level', [BonusController::class, 'levels']);
 
     Route::middleware('Check1cRole')->group(function () {
         Route::post('/bonus/credit', [BonusController::class, 'credit']);
