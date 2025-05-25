@@ -21,8 +21,8 @@ class Bonus extends Model
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',
-        'purchase_amount' => 'decimal:2',
+        'amount' => 'integer',
+        'purchase_amount' => 'integer',
         'expires_at' => 'datetime'
     ];
 

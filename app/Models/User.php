@@ -13,6 +13,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use NotificationChannels\Expo\ExpoPushToken;
+use App\Enums\UserRole;
 
 class User extends Authenticatable implements FilamentUser
 {
@@ -35,6 +36,7 @@ class User extends Authenticatable implements FilamentUser
         'bonus_amount',
         'purchase_amount',
         'password',
+        'role',
     ];
 
     /**
@@ -58,7 +60,13 @@ class User extends Authenticatable implements FilamentUser
         'deleted_at'        => 'datetime',
         'password'          => 'hashed',
         'bonus_amount'      => 'decimal:2',
+        'role'              => UserRole::class,
     ];
+
+    public function is1c(): bool
+    {
+        return $this->role->value === UserRole::ONE_C->value;
+    }
 
     public function canAccessPanel(Panel $panel): bool
     {
