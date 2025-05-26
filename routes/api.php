@@ -24,5 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
+Route::get('offer', [AssetsController::class, 'offer'])->name('asset.offer');
+
 Route::get('/assets/{locale?}', [AssetsController::class, 'show'])->name('assets.index');
 Route::get('/bonus-level', [BonusController::class, 'levels']);

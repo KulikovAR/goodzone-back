@@ -10,7 +10,7 @@ class AssetsController extends Controller
 {
     public function show(?string $locale = null)
     {
-        if (! in_array($locale, LocalizationService::supportedLanguages())) {
+        if (!in_array($locale, LocalizationService::supportedLanguages())) {
             $locale = config('app.locale');
         }
 
@@ -18,6 +18,15 @@ class AssetsController extends Controller
 
         return new ApiJsonResponse(
             data: __('translations') + ['prices' => config('prices')]
+        );
+    }
+
+    public function offer()
+    {
+        return new ApiJsonResponse(
+            data: [
+                'link' => route('offer.show')
+            ]
         );
     }
 }

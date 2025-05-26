@@ -17,3 +17,8 @@ use Illuminate\Support\Facades\Route;
 | GET|HEAD  sanctum/csrf-cookie
 |
 */
+
+
+Route::get('offer', function () {
+    echo 'оферта';
+})->name('offer.show');
