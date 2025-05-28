@@ -32,13 +32,13 @@ class AuthController extends Controller
             ['phone' => $request->phone]
         );
 
-        if ($user->code_sent_at &&
-            Carbon::parse($user->code_sent_at)->addMinutes() > Carbon::now()
+        if ($user->code_send_at &&
+            Carbon::parse($user->code_send_at)->addMinutes() > Carbon::now()
         ) {
             return new ApiJsonResponse(
                 400,
                 false,
-                'Запросить код повторно через: ' . (int)Carbon::now()->diffInSeconds(Carbon::parse($user->code_sent_at)->addMinutes())
+                'Запросить код повторно через: ' . (int)Carbon::now()->diffInSeconds(Carbon::parse($user->code_send_at)->addMinutes())
             );
         }
 
