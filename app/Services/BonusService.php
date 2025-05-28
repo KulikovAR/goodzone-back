@@ -2,19 +2,27 @@
 
 namespace App\Services;
 
+use App\Enums\BonusLevel;
+use App\Enums\NotificationType;
+use App\Http\Resources\BonusCollection;
 use App\Models\Bonus;
 use App\Models\User;
 use Carbon\Carbon;
-use App\Enums\NotificationType;
-use App\Enums\BonusLevel;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use App\Http\Resources\BonusCollection;
 
 class BonusService
 {
     public function __construct(
         private readonly ExpoNotificationService $pushService
-    ) {}
+    )
+    {
+    }
+
+    public function getPromotional(User $user): BonusCollection
+    {
+        return new BonusCollection($this->getPromotionalBonusesHistory($user));
+    }
 
     public function getBonusInfo(User $user): array
     {
@@ -22,12 +30,7 @@ class BonusService
             ->where('type', 'regular')
             ->sum('purchase_amount');
 
-        $promotionalAmount = $user->bonuses()
-            ->where('type', 'promotional')
-            ->where(function ($query) {
-                $query->where('expires_at', '>', now())
-                    ->orWhereNull('expires_at');
-            })
+        $promotionalAmount = $this->getPromotionalBonuses($user)
             ->sum('amount');
 
         $currentLevel = BonusLevel::BRONZE;
@@ -38,11 +41,12 @@ class BonusService
         }
 
         return [
-            'bonus_amount' => (int) $user->bonus_amount,
-            'promotional_bonus_amount' => (int) $promotionalAmount,
+            'bonus_amount' => (int)$user->bonus_amount,
+            'bonus_amount_without' => (int)$user->bonus_amount - (int)$promotionalAmount,
+            'promotional_bonus_amount' => (int)$promotionalAmount,
             'level' => $currentLevel->value,
             'cashback_percent' => $currentLevel->getCashbackPercent(),
-            'total_purchase_amount' => (int) $totalPurchaseAmount,
+            'total_purchase_amount' => (int)$totalPurchaseAmount,
             'next_level' => $currentLevel->getNextLevel()?->value,
             'next_level_min_amount' => $currentLevel->getNextLevelMinAmount(),
             'progress_to_next_level' => $currentLevel->getProgressToNextLevel($totalPurchaseAmount),
@@ -58,7 +62,7 @@ class BonusService
             })
             ->sum('amount');
 
-        $user->update(['bonus_amount' => (int) $totalBonus]);
+        $user->update(['bonus_amount' => (int)$totalBonus]);
     }
 
     public function creditBonus(User $user, float $amount, float $purchaseAmount): Bonus
@@ -79,8 +83,8 @@ class BonusService
                 $user,
                 NotificationType::BONUS_CREDIT,
                 [
-                    'amount' => (int) $amount,
-                    'purchase_amount' => (int) $purchaseAmount,
+                    'amount' => (int)$amount,
+                    'purchase_amount' => (int)$purchaseAmount,
                     'phone' => $user->phone
                 ]
             );
@@ -104,12 +108,14 @@ class BonusService
 
             $this->recalculateUserBonus($user);
 
+            $this->debitPromotional($user, $amount);
+
             $this->pushService->send(
                 $user,
                 NotificationType::BONUS_DEBIT,
                 [
-                    'debit_amount' => (int) $amount,
-                    'remaining_bonus' => (int) $user->bonus_amount,
+                    'debit_amount' => (int)$amount,
+                    'remaining_bonus' => (int)$user->bonus_amount,
                     'phone' => $user->phone
                 ]
             );
@@ -132,7 +138,7 @@ class BonusService
                 $user,
                 NotificationType::BONUS_PROMOTION,
                 [
-                    'bonus_amount' => (int) $amount,
+                    'bonus_amount' => (int)$amount,
                     'expiry_date' => $expiryDate->format('d.m.Y H:i'),
                     'phone' => $user->phone
                 ]
@@ -146,8 +152,69 @@ class BonusService
     {
         $bonuses = $user->bonuses()
             ->orderBy('created_at', 'desc')
+            ->where('service', false)
             ->get();
 
         return new BonusCollection($bonuses);
+    }
+
+
+    private function debitPromotional(User $user, int $amount)
+    {
+        $promotionalBonuses = $this->getPromotionalBonuses($user);
+
+        foreach ($promotionalBonuses as $promotionalBonus) {
+            $promotionalBonusAmount = (int)$promotionalBonus->amount;
+            if ($amount === 0) {
+                break;
+            }
+
+            $promotionalBonus->setUsed();
+
+            if ($promotionalBonus->amount >= $amount) {
+                $this->createServiceWithNewAmount($promotionalBonus, $promotionalBonusAmount - $amount);
+                $promotionalBonus->setUsed();
+                $amount = 0;
+            } else {
+                $amount -= $promotionalBonusAmount;
+            }
+        }
+    }
+
+    private function createServiceWithNewAmount(Bonus $oldBonus, int $newAmount): void
+    {
+        Bonus::create([
+            'user_id' => $oldBonus->user_id,
+            'amount' => $newAmount,
+            'type' => $oldBonus->type,
+            'expires_at' => $oldBonus->expires_at,
+            'service' => true
+        ]);
+    }
+
+    private function getPromotionalBonuses(User $user): Collection
+    {
+        return $user->bonuses()
+            ->where('type', 'promotional')
+            ->where(function ($query) {
+                $query->where('expires_at', '>', now())
+                    ->orWhereNull('expires_at');
+            })
+            ->where('used', false)
+            ->orderBy('expires_at', 'desc')
+            ->get();
+    }
+
+    private function getPromotionalBonusesHistory(User $user): Collection
+    {
+        return $user->bonuses()
+            ->where('type', 'promotional')
+            ->where(function ($query) {
+                $query->where('expires_at', '>', now())
+                    ->orWhereNull('expires_at');
+            })
+            ->where('service', false)
+            ->orderBy('expires_at', 'desc')
+            ->get();
     }
 }

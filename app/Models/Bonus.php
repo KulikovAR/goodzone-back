@@ -17,7 +17,9 @@ class Bonus extends Model
         'amount',
         'purchase_amount',
         'type',
-        'expires_at'
+        'expires_at',
+        'used',
+        'service'
     ];
 
     protected $casts = [
@@ -29,5 +31,11 @@ class Bonus extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function setUsed(): void
+    {
+        $this->used = true;
+        $this->save();
     }
 }
