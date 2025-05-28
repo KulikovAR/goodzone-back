@@ -9,12 +9,13 @@ use App\Models\User;
 use App\Services\OneCService;
 use App\Services\SmsService;
 use App\Services\VerificationService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
     private SmsService $smsService;
-    private bool       $smsEnable = false;
+    private bool $smsEnable = false;
 
     public function __construct(
         private VerificationService $verificationService,
@@ -31,6 +32,16 @@ class AuthController extends Controller
             ['phone' => $request->phone]
         );
 
+        if ($user->code_sent_at &&
+            Carbon::parse($user->code_sent_at)->addMinutes() > Carbon::now()
+        ) {
+            return new ApiJsonResponse(
+                400,
+                false,
+                'Запросить код повторно через: ' . (int)Carbon::now()->diffInSeconds(Carbon::parse($user->code_sent_at)->addMinutes())
+            );
+        }
+
         $code = $this->verificationService->generateCode($request->phone);
 
         $user->code_send_at = now();
@@ -43,8 +54,7 @@ class AuthController extends Controller
                     $message = "Ваш код верификации: $code";
                     $this->smsService->sendSms($sessionId, $request->phone, $message);
                 }
-            }
-            catch (\Exception $e) {
+            } catch (\Exception $e) {
                 Log::error('SMS service error: ' . $e->getMessage());
             }
         }
@@ -61,7 +71,7 @@ class AuthController extends Controller
             $request->code
         );
 
-        if ( ! $isValid) {
+        if (!$isValid) {
             return new ApiJsonResponse(
                 httpCode: 422,
                 ok: false,
@@ -70,7 +80,7 @@ class AuthController extends Controller
         }
 
         $user = User::where('phone', $request->phone)->first();
-        if ( ! $user) {
+        if (!$user) {
             return new ApiJsonResponse(
                 httpCode: 404,
                 ok: false,
@@ -78,7 +88,7 @@ class AuthController extends Controller
             );
         }
 
-        $isFirstVerification = ! $user->phone_verified_at;
+        $isFirstVerification = !$user->phone_verified_at;
 
         if ($request->device_token) {
             $user->device_token = $request->device_token;
