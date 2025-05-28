@@ -14,6 +14,7 @@ Route::middleware(['guest'])->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bonus/info', [BonusController::class, 'info']);
     Route::get('/bonus/history', [BonusController::class, 'history']);
+    Route::get('/bonus/promotional-history', [BonusController::class, 'promotionalHistory']);
     Route::put('/user/update', [UserController::class, 'update']);
     Route::get('/user', [UserController::class, 'show']);
 

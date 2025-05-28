@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\BonusLevel;
 use App\Http\Requests\Bonus\CreditRequest;
 use App\Http\Requests\Bonus\DebitRequest;
 use App\Http\Requests\Bonus\PromotionRequest;
 use App\Http\Responses\ApiJsonResponse;
 use App\Models\User;
 use App\Services\BonusService;
-use App\Services\PushNotificationService;
-use App\Enums\BonusLevel;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Auth;
@@ -58,8 +57,7 @@ class BonusController extends Controller
                 $user,
                 $request->debit_amount
             );
-        }
-        catch (Exception $exception) {
+        } catch (Exception $exception) {
             return new ApiJsonResponse(
                 400,
                 false,
@@ -93,6 +91,18 @@ class BonusController extends Controller
         $user = Auth::user();
 
         $history = $this->bonusService->getBonusHistory($user);
+
+        return new ApiJsonResponse(
+            data: $history
+        );
+    }
+
+
+    public function promotionalHistory(): ApiJsonResponse
+    {
+        $user = Auth::user();
+
+        $history = $this->bonusService->getPromotional($user);
 
         return new ApiJsonResponse(
             data: $history
