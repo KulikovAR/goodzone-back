@@ -37,6 +37,9 @@ class User extends Authenticatable implements FilamentUser
         'purchase_amount',
         'password',
         'role',
+        'birthday',
+        'children',
+        'marital_status',
     ];
 
     /**
@@ -61,6 +64,7 @@ class User extends Authenticatable implements FilamentUser
         'password'          => 'hashed',
         'bonus_amount'      => 'decimal:2',
         'role'              => UserRole::class,
+        'birthday'          => 'datetime',
     ];
 
     public function is1c(): bool

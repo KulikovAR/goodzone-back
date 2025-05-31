@@ -26,7 +26,10 @@ class UserController
      *                 @OA\Property(property="phone", type="string", example="+79991234567"),
      *                 @OA\Property(property="email", type="string", example="john@example.com"),
      *                 @OA\Property(property="gender", type="string", example="male"),
-     *                 @OA\Property(property="city", type="string", example="Moscow")
+     *                 @OA\Property(property="city", type="string", example="Moscow"),
+     *                 @OA\Property(property="birthday", type="string", format="date", example="1990-01-01", nullable=true),
+     *                 @OA\Property(property="children", type="string", example="2", nullable=true),
+     *                 @OA\Property(property="marital_status", type="string", example="married", nullable=true)
      *             )
      *         )
      *     ),
@@ -56,7 +59,10 @@ class UserController
      *             @OA\Property(property="name", type="string", example="John Doe"),
      *             @OA\Property(property="email", type="string", example="john@example.com"),
      *             @OA\Property(property="gender", type="string", example="male"),
-     *             @OA\Property(property="city", type="string", example="Moscow")
+     *             @OA\Property(property="city", type="string", example="Moscow"),
+     *             @OA\Property(property="birthday", type="string", format="date", example="1990-01-01", nullable=true),
+     *             @OA\Property(property="children", type="string", example="2", nullable=true),
+     *             @OA\Property(property="marital_status", type="string", example="married", nullable=true)
      *         )
      *     ),
      *

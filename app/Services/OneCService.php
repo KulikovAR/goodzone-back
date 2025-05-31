@@ -43,6 +43,9 @@ class OneCService
             'gender' => $user->gender,
             'city' => $user->city,
             'email' => $user->email,
+            'birthday' => $user->birthday?->format('Y-m-d'),
+            'children' => $user->children,
+            'marital_status' => $user->marital_status,
         ];
 
         OneCRequest::dispatch($endpoint, $data, 'PUT');

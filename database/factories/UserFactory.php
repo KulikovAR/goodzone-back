@@ -28,6 +28,9 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'device_token' => 'ExponentPushToken[' . Str::random(22) . ']',
             'role' => UserRole::USER->value,
+            'birthday' => fake()->date(),
+            'children' => fake()->randomElement(['0', '1', '2', '3+']),
+            'marital_status' => fake()->randomElement(['single', 'married', 'divorced', 'widowed']),
         ];
     }
 

@@ -75,6 +75,32 @@ class UserTest extends TestCase
         ]);
     }
 
+    public function test_user_can_update_profile_with_new_fields()
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->putJson('/api/user/update', [
+            'birthday' => '1990-01-01',
+            'children' => '2',
+            'marital_status' => 'married'
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'message' => 'Пользователь успешно обновлен'
+            ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'birthday' => '1990-01-01 00:00:00',
+            'children' => '2',
+            'marital_status' => 'married'
+        ]);
+    }
+
     public function test_unauthorized_user_cannot_update_profile()
     {
         $response = $this->putJson('/api/user/update', [
