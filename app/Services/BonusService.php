@@ -206,7 +206,7 @@ class BonusService
                     ->orWhereNull('expires_at');
             })
             ->where('used', false)
-            ->orderBy('expires_at', 'desc')
+            ->orderBy('expires_at')
             ->get();
     }
 }
