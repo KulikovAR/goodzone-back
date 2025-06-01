@@ -337,4 +337,53 @@ class BonusController
     {
         //
     }
+
+    /**
+     * @OA\Get(
+     *     path="/bonus/promotional-history",
+     *     summary="Получение истории бонусов",
+     *     description="Возвращает историю начисления и списания бонусов пользователя",
+     *     tags={"Bonus"},
+     *     security={{"api": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Успешное получение истории",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="ok", type="boolean", example=true),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(
+     *                     property="history",
+     *                     type="array",
+     *                     @OA\Items(
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer", example=1),
+     *                         @OA\Property(property="amount", type="number", example=100),
+     *                         @OA\Property(property="type", type="string", example="regular", enum={"regular", "promotional"}),
+     *                         @OA\Property(property="purchase_amount", type="number", example=1000, nullable=true),
+     *                         @OA\Property(property="expires_at", type="string", format="date-time", example="2024-12-31T23:59:59", nullable=true),
+     *                         @OA\Property(property="created_at", type="string", format="date-time", example="2024-01-01T12:00:00")
+     *                     )
+     *                 ),
+     *                 @OA\Property(property="total_count", type="integer", example=10)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Не авторизован",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     )
+     * )
+     */
+    public function promotionalHistory()
+    {
+        
+    }
 }
