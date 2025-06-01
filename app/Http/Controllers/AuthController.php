@@ -106,7 +106,7 @@ class AuthController extends Controller
         $user->save();
 
         if ($isFirstVerification) {
-            $this->oneCService->sendRegister($user);
+//            $this->oneCService->sendRegister($user);
         }
 
         $token = $user->createToken('auth-token')->plainTextToken;

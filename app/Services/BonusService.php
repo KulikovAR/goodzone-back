@@ -21,7 +21,7 @@ class BonusService
 
     public function getPromotional(User $user): BonusCollection
     {
-        return new BonusCollection($this->getPromotionalBonusesHistory($user));
+        return new BonusCollection($this->getPromotionalBonuses($user));
     }
 
     public function getBonusInfo(User $user): array
@@ -162,7 +162,6 @@ class BonusService
     private function debitPromotional(User $user, int $amount)
     {
         $promotionalBonuses = $this->getPromotionalBonuses($user);
-
         foreach ($promotionalBonuses as $promotionalBonus) {
             $promotionalBonusAmount = (int)$promotionalBonus->amount;
             if ($amount === 0) {
