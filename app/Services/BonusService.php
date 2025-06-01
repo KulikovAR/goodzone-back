@@ -114,7 +114,7 @@ class BonusService
 
             $this->recalculateUserBonus($user);
 
-            $this->debitPromotional($user, $amount);
+            $amount = $this->debitPromotional($user, $amount);
 
             $this->pushService->send(
                 $user,
@@ -184,6 +184,8 @@ class BonusService
                 $amount -= $promotionalBonusAmount;
             }
         }
+
+        return $amount;
     }
 
     private function createServiceWithNewAmount(Bonus $oldBonus, int $newAmount): void
