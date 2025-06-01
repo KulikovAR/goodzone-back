@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 class AuthController extends Controller
 {
     private SmsService $smsService;
-    private bool $smsEnable = false;
+    private bool $smsEnable = true;
 
     public function __construct(
         private VerificationService $verificationService,
@@ -106,7 +106,7 @@ class AuthController extends Controller
         $user->save();
 
         if ($isFirstVerification) {
-//            $this->oneCService->sendRegister($user);
+            $this->oneCService->sendRegister($user);
         }
 
         $token = $user->createToken('auth-token')->plainTextToken;
