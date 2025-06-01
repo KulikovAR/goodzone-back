@@ -60,7 +60,12 @@ class BonusService
                 $query->where('expires_at', '>', now())
                     ->orWhereNull('expires_at');
             })
+            ->where('used', false)
             ->sum('amount');
+
+        if($totalBonus < 0 ) {
+            $totalBonus = 0;
+        }
 
         $user->update(['bonus_amount' => (int)$totalBonus]);
     }
@@ -96,7 +101,8 @@ class BonusService
     public function debitBonus(User $user, float $amount): void
     {
         DB::transaction(function () use ($user, $amount) {
-            if ($user->bonus_amount < $amount) {
+            if ($user->bonus_amount + $this->getPromotionalBonuses($user)
+                    ->sum('amount')  < $amount) {
                 throw new \Exception('Недостаточно бонусов');
             }
 
@@ -200,19 +206,6 @@ class BonusService
                     ->orWhereNull('expires_at');
             })
             ->where('used', false)
-            ->orderBy('expires_at', 'desc')
-            ->get();
-    }
-
-    private function getPromotionalBonusesHistory(User $user): Collection
-    {
-        return $user->bonuses()
-            ->where('type', 'promotional')
-            ->where(function ($query) {
-                $query->where('expires_at', '>', now())
-                    ->orWhereNull('expires_at');
-            })
-            ->where('service', false)
             ->orderBy('expires_at', 'desc')
             ->get();
     }
