@@ -19,7 +19,8 @@ class Bonus extends Model
         'type',
         'expires_at',
         'used',
-        'service'
+        'service',
+        'status'
     ];
 
     protected $casts = [
