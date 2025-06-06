@@ -14,7 +14,7 @@ class UpdateRequest extends FormRequest
             'gender' => ['nullable', 'string', 'in:male,female'],
             'city' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'unique:users,email,' . $this->user()->id . ',id,deleted_at,NULL'],
-            'birthday' => ['nullable', 'date'],
+            'birthday' => ['nullable', 'date', 'before_or_equal:today'],
             'children' => ['nullable', 'string'],
             'marital_status' => ['nullable', 'string'],
         ];
