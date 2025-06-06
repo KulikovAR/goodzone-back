@@ -22,7 +22,7 @@ class BonusService
 
     public function getPromotional(User $user): BonusCollection
     {
-        return new BonusCollection($this->getActivePromotionalBonuses($user));
+        return new BonusCollection($this->getHistoryPromotionalBonuses($user));
     }
 
     public function getBonusInfo(User $user): array
@@ -61,13 +61,7 @@ class BonusService
             ->whereIn('status', ['show-and-calc', 'calc-not-show'])
             ->sum('amount');
 
-        $promotionalBonus = $user->bonuses()
-            ->where('type', 'promotional')
-            ->where('status', 'show-and-calc')
-            ->where(function ($query) {
-                $query->where('expires_at', '>', now())
-                    ->orWhereNull('expires_at');
-            })
+        $promotionalBonus = $this->getActivePromotionalBonuses($user)
             ->sum('amount');
 
         $totalBonus = $regularBonus + $promotionalBonus;
@@ -91,6 +85,7 @@ class BonusService
             ]);
 
             $this->recalculateUserBonus($user);
+
             $user->addPurchaseAmount($purchaseAmount);
 
             $this->pushService->send(
@@ -117,6 +112,7 @@ class BonusService
             }
 
             $promotionalBonuses = $this->getActivePromotionalBonuses($user);
+
             $promotionalAmount = $promotionalBonuses->sum('amount');
 
             if ($promotionalBonuses->count() > 0) {
@@ -124,9 +120,18 @@ class BonusService
             }
 
             $remainingAmount = $amount - $promotionalAmount;
+
             if ($remainingAmount > 0) {
                 $this->debitRegularBonuses($user, $remainingAmount);
             }
+
+            Bonus::create([
+                'user_id' => $user->id,
+                'amount' => -$amount,
+                'type' => 'regular',
+                'status' => 'show-not-calc'
+            ]);
+
 
             $this->recalculateUserBonus($user);
 
@@ -196,19 +201,11 @@ class BonusService
                     'amount' => $bonus->amount - $debitAmount,
                     'type' => 'promotional',
                     'expires_at' => $bonus->expires_at,
-                    'status' => 'show-and-calc'
+                    'status' => 'calc-not-show'
                 ]);
             }
 
-            Bonus::create([
-                'user_id' => $user->id,
-                'amount' => -$debitAmount,
-                'type' => 'promotional',
-                'expires_at' => $bonus->expires_at,
-                'status' => 'calc-not-show'
-            ]);
-
-            $bonus->update(['status' => 'calc-not-show']);
+            $bonus->update(['status' => 'show-not-calc']);
             $remainingAmount -= $debitAmount;
         }
     }
@@ -227,7 +224,20 @@ class BonusService
     {
         return $user->bonuses()
             ->where('type', 'promotional')
-            ->where('status', 'show-and-calc')
+            ->whereIn('status', ['show-and-calc', 'calc-not-show'])
+            ->where(function ($query) {
+                $query->where('expires_at', '>', now())
+                    ->orWhereNull('expires_at');
+            })
+            ->orderBy('expires_at')
+            ->get();
+    }
+
+    private function getHistoryPromotionalBonuses(User $user): Collection
+    {
+        return $user->bonuses()
+            ->where('type', 'promotional')
+            ->whereIn('status', ['show-and-calc', 'show-not-calc'])
             ->where(function ($query) {
                 $query->where('expires_at', '>', now())
                     ->orWhereNull('expires_at');
