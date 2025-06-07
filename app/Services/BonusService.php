@@ -22,7 +22,7 @@ class BonusService
 
     public function getPromotional(User $user): BonusCollection
     {
-        return new BonusCollection($this->getHistoryPromotionalBonuses($user));
+        return new BonusCollection($this->getActivePromotionalBonuses($user));
     }
 
     public function getBonusInfo(User $user): array
@@ -225,19 +225,6 @@ class BonusService
         return $user->bonuses()
             ->where('type', 'promotional')
             ->whereIn('status', ['show-and-calc', 'calc-not-show'])
-            ->where(function ($query) {
-                $query->where('expires_at', '>', now())
-                    ->orWhereNull('expires_at');
-            })
-            ->orderBy('expires_at')
-            ->get();
-    }
-
-    private function getHistoryPromotionalBonuses(User $user): Collection
-    {
-        return $user->bonuses()
-            ->where('type', 'promotional')
-            ->whereIn('status', ['show-and-calc', 'show-not-calc'])
             ->where(function ($query) {
                 $query->where('expires_at', '>', now())
                     ->orWhereNull('expires_at');
