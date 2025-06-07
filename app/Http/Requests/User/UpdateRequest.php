@@ -19,4 +19,11 @@ class UpdateRequest extends FormRequest
             'marital_status' => ['nullable', 'string'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'birthday.before_or_equal' => 'Введите корректную дату рождения',
+        ];
+    }
 }
