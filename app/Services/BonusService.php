@@ -116,7 +116,7 @@ class BonusService
             $promotionalAmount = $promotionalBonuses->sum('amount');
 
             if ($promotionalBonuses->count() > 0) {
-                $this->debitPromotionalBonuses($user, $amount);
+                $idsToDelete = $this->debitPromotionalBonuses($user, $amount);
             }
 
             $remainingAmount = $amount - $promotionalAmount;
@@ -134,6 +134,8 @@ class BonusService
 
 
             $this->recalculateUserBonus($user);
+
+            Bonus::whereIn('id', $idsToDelete)->delete();
 
             $this->pushService->send(
                 $user,
@@ -184,8 +186,10 @@ class BonusService
         return new BonusCollection($bonuses);
     }
 
-    private function debitPromotionalBonuses(User $user, float $remainingAmount): void
+    private function debitPromotionalBonuses(User $user, float $remainingAmount): array
     {
+        $idsToDelete = [];
+
         $promotionalBonuses = $this->getActivePromotionalBonuses($user);
 
         foreach ($promotionalBonuses as $bonus) {
@@ -205,13 +209,15 @@ class BonusService
                 ]);
             }
 
-//            $bonus->update(['status' => 'show-not-calc']);
+            $bonus->update(['status' => 'show-not-calc']);
 
             if($bonus->status === 'calc-not-show') {
-                $bonus->delete();
+                $idsToDelete = $bonus->id;
             }
 
             $remainingAmount -= $debitAmount;
+
+            return $idsToDelete;
         }
     }
 
