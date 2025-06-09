@@ -205,9 +205,11 @@ class BonusService
                 ]);
             }
 
-            if($bonus->status == 'calc-not-show') {
-                $bonus->delete();
-            }
+            $bonus->update(['status' => 'show-not-calc']);
+
+//            if($bonus->status === 'calc-not-show') {
+//                $bonus->delete();
+//            }
 
             $remainingAmount -= $debitAmount;
         }
