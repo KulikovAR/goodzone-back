@@ -211,7 +211,7 @@ class BonusService
             }
 
             $bonus->update(['status' => 'show-not-calc']);
-            
+
             $remainingAmount -= $debitAmount;
         }
     }

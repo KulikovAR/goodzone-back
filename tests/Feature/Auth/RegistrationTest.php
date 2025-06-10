@@ -131,6 +131,8 @@ class RegistrationTest extends TestCase
     public function test_android_user_can_verify_code(): void
     {
         $phone = '+7' . fake()->numerify('##########');
+        $deviceToken = 'ExponentPushToken[' . fake()->regexify('[A-Za-z0-9]{22}') . ']';
+        
         User::create([
             'phone' => $phone
         ]);
@@ -144,17 +146,25 @@ class RegistrationTest extends TestCase
             'platform' => 'android'
         ])->postJson('/api/verify', [
             'phone' => $phone,
-            'code' => '1234'
+            'code' => '1234',
+            'device_token' => $deviceToken
         ]);
 
         $response->assertStatus(200);
         $user = User::where('phone', $phone)->first();
         $this->assertEquals(1, $user->come_from_app);
+        $this->assertDatabaseHas('user_device_tokens', [
+            'user_id' => $user->id,
+            'device_token' => $deviceToken,
+            'platform' => 'android'
+        ]);
     }
 
     public function test_ios_user_can_verify_code(): void
     {
         $phone = '+7' . fake()->numerify('##########');
+        $deviceToken = 'ExponentPushToken[' . fake()->regexify('[A-Za-z0-9]{22}') . ']';
+        
         User::create([
             'phone' => $phone
         ]);
@@ -168,12 +178,18 @@ class RegistrationTest extends TestCase
             'platform' => 'ios'
         ])->postJson('/api/verify', [
             'phone' => $phone,
-            'code' => '1234'
+            'code' => '1234',
+            'device_token' => $deviceToken
         ]);
 
         $response->assertStatus(200);
         $user = User::where('phone', $phone)->first();
         $this->assertEquals(1, $user->come_from_app);
+        $this->assertDatabaseHas('user_device_tokens', [
+            'user_id' => $user->id,
+            'device_token' => $deviceToken,
+            'platform' => 'ios'
+        ]);
     }
 
     public function test_web_user_can_verify_code(): void
@@ -197,5 +213,58 @@ class RegistrationTest extends TestCase
         $user = User::where('phone', $phone)->first();
         $this->assertEquals(0, $user->come_from_app);
     }
-    
+
+    public function test_user_can_logout_with_device_token(): void
+    {
+        $user = User::factory()->create();
+        $deviceToken = 'ExponentPushToken[' . fake()->regexify('[A-Za-z0-9]{22}') . ']';
+        
+        $user->deviceTokens()->create([
+            'device_token' => $deviceToken,
+            'platform' => 'ios'
+        ]);
+
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->postJson('/api/logout', [
+            'device_token' => $deviceToken
+        ]);
+
+        $response->assertOk();
+        $this->assertDatabaseMissing('user_device_tokens', [
+            'user_id' => $user->id,
+            'device_token' => $deviceToken
+        ]);
+    }
+
+    public function test_user_can_logout_all_devices(): void
+    {
+        $user = User::factory()->create();
+        $deviceToken1 = 'ExponentPushToken[' . fake()->regexify('[A-Za-z0-9]{22}') . ']';
+        $deviceToken2 = 'ExponentPushToken[' . fake()->regexify('[A-Za-z0-9]{22}') . ']';
+        
+        $user->deviceTokens()->createMany([
+            [
+                'device_token' => $deviceToken1,
+                'platform' => 'ios'
+            ],
+            [
+                'device_token' => $deviceToken2,
+                'platform' => 'android'
+            ]
+        ]);
+
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->postJson('/api/logout');
+
+        $response->assertOk();
+        $this->assertDatabaseMissing('user_device_tokens', [
+            'user_id' => $user->id
+        ]);
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\LogoutRequest;
 use App\Http\Requests\VerifyRequest;
 use App\Http\Responses\ApiJsonResponse;
 use App\Models\User;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Log;
 class AuthController extends Controller
 {
     private SmsService $smsService;
-    private bool $smsEnable = true;
+    private bool       $smsEnable = true;
 
     public function __construct(
         private VerificationService $verificationService,
@@ -38,7 +39,7 @@ class AuthController extends Controller
             return new ApiJsonResponse(
                 400,
                 false,
-                'Запросить код повторно через: ' . (int)Carbon::now()->diffInSeconds(Carbon::parse($user->code_send_at)->addMinutes())
+                'Запросить код повторно через: ' . (int) Carbon::now()->diffInSeconds(Carbon::parse($user->code_send_at)->addMinutes())
             );
         }
 
@@ -54,7 +55,8 @@ class AuthController extends Controller
                     $message = "Ваш код верификации: $code";
                     $this->smsService->sendSms($sessionId, $request->phone, $message);
                 }
-            } catch (\Exception $e) {
+            }
+            catch (\Exception $e) {
                 Log::error('SMS service error: ' . $e->getMessage());
             }
         }
@@ -64,6 +66,20 @@ class AuthController extends Controller
         );
     }
 
+
+    public function logout(LogoutRequest $request): ApiJsonResponse
+    {
+        $user = $request->user();
+
+        if ($request->device_token) {
+            $user->deviceTokens()->where('device_token', $request->device_token)->delete();
+        } else {
+            $user->deviceTokens()->delete();
+        }
+
+        return new ApiJsonResponse();
+    }
+
     public function verify(VerifyRequest $request): ApiJsonResponse
     {
         $isValid = $this->verificationService->verifyCode(
@@ -71,7 +87,7 @@ class AuthController extends Controller
             $request->code
         );
 
-        if (!$isValid) {
+        if ( ! $isValid) {
             return new ApiJsonResponse(
                 httpCode: 422,
                 ok: false,
@@ -80,7 +96,7 @@ class AuthController extends Controller
         }
 
         $user = User::where('phone', $request->phone)->first();
-        if (!$user) {
+        if ( ! $user) {
             return new ApiJsonResponse(
                 httpCode: 404,
                 ok: false,
@@ -88,10 +104,14 @@ class AuthController extends Controller
             );
         }
 
-        $isFirstVerification = !$user->phone_verified_at;
+        $isFirstVerification = ! $user->phone_verified_at;
 
         if ($request->device_token) {
-            $user->device_token = $request->device_token;
+            $platform = $request->header('platform');
+            $user->deviceTokens()->updateOrCreate(
+                ['device_token' => $request->device_token],
+                ['platform' => $platform]
+            );
         }
 
         if ($isFirstVerification) {

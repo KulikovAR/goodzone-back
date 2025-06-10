@@ -23,6 +23,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/bonus/debit', [BonusController::class, 'debit']);
         Route::post('/bonus/promotion', [BonusController::class, 'promotion']);
     });
+
+    Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
 });
 
 Route::get('offer', [AssetsController::class, 'offer'])->name('asset.offer');

@@ -30,7 +30,6 @@ class User extends Authenticatable implements FilamentUser
         'city',
         'email',
         'phone',
-        'device_token',
         'phone_verified_at',
         'code_send_at',
         'bonus_amount',
@@ -87,8 +86,15 @@ class User extends Authenticatable implements FilamentUser
         $this->purchase_amount += (int) $amount;
     }
 
-    public function routeNotificationForExpo(): ?ExpoPushToken
+    public function deviceTokens(): HasMany
     {
-        return $this->device_token ? ExpoPushToken::make($this->device_token) : null;
+        return $this->hasMany(UserDeviceToken::class);
+    }
+
+    public function routeNotificationForExpo(): array
+    {
+        return $this->deviceTokens->pluck('device_token')->map(function ($token) {
+            return ExpoPushToken::make($token);
+        })->toArray();
     }
 }

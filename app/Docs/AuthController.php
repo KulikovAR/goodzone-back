@@ -117,4 +117,45 @@ class AuthController
     {
         //
     }
+
+    /**
+     * @OA\Post(
+     *     path="/api/logout",
+     *     summary="Выход из системы",
+     *     description="Выход пользователя из системы с возможностью выхода с конкретного устройства или со всех устройств",
+     *     tags={"Аутентификация"},
+     *     security={{"api": {}}},
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             @OA\Property(
+     *                 property="device_token",
+     *                 type="string",
+     *                 description="Токен устройства для выхода с конкретного устройства. Если не указан, происходит выход со всех устройств",
+     *                 example="ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Успешный выход",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="ok", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Успешный выход")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Не авторизован",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="ok", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthenticated")
+     *         )
+     *     )
+     * )
+     */
+    public function logout()
+    {
+
+    }
 }
