@@ -6,6 +6,7 @@ use App\Jobs\OneCRequest;
 use App\Services\OneCClient;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class OneCRequestTest extends TestCase
@@ -17,6 +18,9 @@ class OneCRequestTest extends TestCase
         // Mock config values for tests
         Config::set('services.one_c.host', 'https://test-1c.example.com');
         Config::set('services.one_c.token', 'test-token');
+        
+        // Set environment to production for testing
+        $this->app['env'] = 'production';
     }
 
     public function test_job_retries_on_failure(): void
@@ -33,15 +37,19 @@ class OneCRequestTest extends TestCase
             method: 'POST'
         );
 
-        // Simulate job retries
         try {
             $job->handle(app(OneCClient::class));
         } catch (\Exception $e) {
-            // First attempt fails
-            $job->handle(app(OneCClient::class)); // Second attempt succeeds
+            // First attempt fails as expected
+            $this->assertEquals('1C API Error: 500', $e->getMessage());
         }
 
-        Http::assertSentCount(2); // Verify both attempts were made
+        Http::assertSentCount(1);
+
+        // Second attempt should succeed
+        $job->handle(app(OneCClient::class));
+
+        Http::assertSentCount(2);
     }
 
     public function test_job_fails_after_max_attempts(): void
@@ -59,6 +67,16 @@ class OneCRequestTest extends TestCase
             method: 'POST'
         );
 
-        $job->handle(app(OneCClient::class));
+        // Simulate all retry attempts
+        for ($i = 0; $i < $job->tries; $i++) {
+            try {
+                $job->handle(app(OneCClient::class));
+            } catch (\Exception $e) {
+                if ($i === $job->tries - 1) {
+                    throw $e;
+                }
+                $job->failed($e);
+            }
+        }
     }
 }

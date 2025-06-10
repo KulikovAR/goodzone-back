@@ -60,4 +60,14 @@ class OneCRequest implements ShouldQueue
             throw $e;
         }
     }
+
+    public function failed(\Throwable $exception): void
+    {
+        Log::error('1C Request Job Failed', [
+            'endpoint' => $this->endpoint,
+            'method'   => $this->method,
+            'data'     => $this->data,
+            'error'    => $exception->getMessage(),
+        ]);
+    }
 }

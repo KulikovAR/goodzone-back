@@ -74,10 +74,13 @@ class OneCServiceTest extends TestCase
             return $job->endpoint === $endpoint
                 && $job->method === 'PUT'
                 && $job->data === [
-                    'name' => $this->user->name,    // Use dynamic user data
+                    'name' => $this->user->name,
                     'gender' => $this->user->gender,
                     'city' => $this->user->city,
-                    'email' => $this->user->email
+                    'email' => $this->user->email,
+                    'birthday' => $this->user->birthday?->format('Y-m-d'),
+                    'children' => $this->user->children,
+                    'marital_status' => $this->user->marital_status,
                 ];
         });
     }
