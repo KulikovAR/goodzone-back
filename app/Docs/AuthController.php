@@ -123,7 +123,7 @@ class AuthController
      *     path="/api/logout",
      *     summary="Выход из системы",
      *     description="Выход пользователя из системы с возможностью выхода с конкретного устройства или со всех устройств",
-     *     tags={"Аутентификация"},
+     *     tags={"Auth"},
      *     security={{"api": {}}},
      *     @OA\RequestBody(
      *         required=false,
