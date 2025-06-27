@@ -19,6 +19,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'show']);
 
     Route::middleware('Check1cRole')->group(function () {
+        Route::get('/bonus/info-integration', [BonusController::class, 'infoIntegration']);
         Route::post('/bonus/credit', [BonusController::class, 'credit']);
         Route::post('/bonus/debit', [BonusController::class, 'debit']);
         Route::post('/bonus/promotion', [BonusController::class, 'promotion']);

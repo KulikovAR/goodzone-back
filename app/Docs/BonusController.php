@@ -47,6 +47,58 @@ class BonusController
     }
 
     /**
+     * @OA\Get(
+     *     path="/bonus/info-integration",
+     *     summary="Получение информации о бонусах",
+     *     description="Возвращает текущий баланс бонусов, уровень пользователя и информацию о прогрессе к следующему уровню",
+     *     tags={"Bonus"},
+     *     security={{"api": {}}},
+     *     @OA\Parameter(
+     *      name="id",
+     *      description="phone",
+     *      example="+7111111111",
+     *      required=true,
+     *      in="query",
+     *      @OA\Schema(
+     *          type="string"
+     *          )
+     *      ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Успешное получение информации",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="ok", type="boolean", example=true),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="bonus_amount", type="number", example=100),
+     *                 @OA\Property(property="level", type="string", example="bronze", enum={"bronze", "silver", "gold"}),
+     *                 @OA\Property(property="cashback_percent", type="number", example=5),
+     *                 @OA\Property(property="total_purchase_amount", type="number", example=5000),
+     *                 @OA\Property(property="next_level", type="string", example="silver", nullable=true),
+     *                 @OA\Property(property="next_level_min_amount", type="number", example=10000, nullable=true),
+     *                 @OA\Property(property="progress_to_next_level", type="number", example=50)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Не авторизован",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     )
+     * )
+     */
+    public function infoIntegration()
+    {
+        //
+    }
+
+    /**
      * @OA\Post(
      *     path="/bonus/credit",
      *     summary="Начисление бонусов",
@@ -384,6 +436,6 @@ class BonusController
      */
     public function promotionalHistory()
     {
-        
+
     }
 }

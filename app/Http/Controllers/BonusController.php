@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\BonusService;
 use Carbon\Carbon;
 use Exception;
+use http\Env\Request;
 use Illuminate\Support\Facades\Auth;
 
 class BonusController extends Controller
@@ -21,6 +22,16 @@ class BonusController extends Controller
     {
     }
 
+    public function infoIntegration(Request $request): ApiJsonResponse
+    {
+        $user = User::where('phone', $request->phone)->firstOrFail();
+
+        $bonusInfo = $this->bonusService->getBonusInfo($user);
+
+        return new ApiJsonResponse(
+            data: $bonusInfo
+        );
+    }
 
     public function info(): ApiJsonResponse
     {

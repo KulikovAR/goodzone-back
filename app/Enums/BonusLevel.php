@@ -13,7 +13,7 @@ enum BonusLevel: string
         return match($this) {
             self::BRONZE => 5,
             self::SILVER => 10,
-            self::GOLD => 15,
+            self::GOLD => 30,
         };
     }
 
@@ -50,12 +50,13 @@ enum BonusLevel: string
         $currentLevelMin = $this->getMinPurchaseAmount();
         $nextLevelMin = $nextLevel->getMinPurchaseAmount();
         $range = $nextLevelMin - $currentLevelMin;
-        
+
         if ($range <= 0) {
             return 100;
         }
 
         $progress = ($currentAmount - $currentLevelMin) / $range * 100;
+
         return min(max($progress, 0), 100);
     }
-} 
+}

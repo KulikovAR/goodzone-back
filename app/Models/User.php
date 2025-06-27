@@ -91,6 +91,7 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(UserDeviceToken::class);
     }
 
+
     public function routeNotificationForExpo(): array
     {
         return $this->deviceTokens->pluck('device_token')->map(function ($token) {
