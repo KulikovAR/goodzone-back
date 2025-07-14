@@ -40,6 +40,7 @@ class PushNotificationService
             NotificationType::BONUS_CREDIT => "Вам начислено {$data['amount']} бонусов за покупку на сумму {$data['purchase_amount']}",
             NotificationType::BONUS_DEBIT => "Списано {$data['debit_amount']} бонусов. Остаток: {$data['remaining_bonus']}",
             NotificationType::BONUS_PROMOTION => "Вам начислено {$data['bonus_amount']} акционных бонусов. Действует до {$data['expiry_date']}",
+            NotificationType::BONUS_PROFILE_COMPLETION => "Поздравляем! Вам начислено {$data['amount']} бонусов за заполнение анкеты. Спасибо за предоставленную информацию!",
         };
     }
 
@@ -49,6 +50,7 @@ class PushNotificationService
             NotificationType::BONUS_CREDIT => 'Начисление бонусов',
             NotificationType::BONUS_DEBIT => 'Списание бонусов',
             NotificationType::BONUS_PROMOTION => 'Акционные бонусы',
+            NotificationType::BONUS_PROFILE_COMPLETION => 'Бонус за анкету',
         };
     }
 }

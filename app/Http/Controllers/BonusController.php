@@ -6,12 +6,12 @@ use App\Enums\BonusLevel;
 use App\Http\Requests\Bonus\CreditRequest;
 use App\Http\Requests\Bonus\DebitRequest;
 use App\Http\Requests\Bonus\PromotionRequest;
+use App\Http\Requests\Bonus\RefundRequest;
 use App\Http\Responses\ApiJsonResponse;
 use App\Models\User;
 use App\Services\BonusService;
 use Carbon\Carbon;
 use Exception;
-use http\Env\Request;
 use Illuminate\Support\Facades\Auth;
 
 class BonusController extends Controller
@@ -22,16 +22,6 @@ class BonusController extends Controller
     {
     }
 
-    public function infoIntegration(Request $request): ApiJsonResponse
-    {
-        $user = User::where('phone', $request->phone)->firstOrFail();
-
-        $bonusInfo = $this->bonusService->getBonusInfo($user);
-
-        return new ApiJsonResponse(
-            data: $bonusInfo
-        );
-    }
 
     public function info(): ApiJsonResponse
     {
@@ -48,15 +38,29 @@ class BonusController extends Controller
     {
         $user = User::where('phone', $request->phone)->firstOrFail();
 
-        $this->bonusService->creditBonus(
+        try {
+        $bonus = $this->bonusService->creditBonus(
             $user,
-            $request->bonus_amount,
-            $request->purchase_amount
+                $request->purchase_amount,
+                $request->id_sell
         );
 
         return new ApiJsonResponse(
-            message: 'Бонусы начислены'
+            message: 'Бонусы начислены',
+            data: [
+                'calculated_bonus_amount' => (int)$bonus->amount,
+                'user_level' => $this->bonusService->getUserLevel($user)->value,
+                    'cashback_percent' => $this->bonusService->getUserLevel($user)->getCashbackPercent(),
+                    'receipt_id' => $bonus->id_sell
+            ]
         );
+        } catch (Exception $exception) {
+            return new ApiJsonResponse(
+                400,
+                false,
+                $exception->getMessage()
+            );
+        }
     }
 
     public function debit(DebitRequest $request): ApiJsonResponse
@@ -66,7 +70,9 @@ class BonusController extends Controller
         try {
             $this->bonusService->debitBonus(
                 $user,
-                $request->debit_amount
+                $request->debit_amount,
+                $request->id_sell,
+                $request->parent_id_sell
             );
         } catch (Exception $exception) {
             return new ApiJsonResponse(
@@ -80,6 +86,40 @@ class BonusController extends Controller
         return new ApiJsonResponse(
             message: 'Бонусы списаны'
         );
+    }
+
+    public function refund(RefundRequest $request): ApiJsonResponse
+    {
+        $user = User::where('phone', $request->phone)->firstOrFail();
+
+        try {
+            $refundResult = $this->bonusService->refundBonusByReceipt(
+                $user,
+                $request->id_sell,
+                $request->parent_id_sell,
+                $request->refund_amount
+            );
+
+            $refundBonus = $refundResult['refund_bonus'];
+            $returnedDebitAmount = $refundResult['returned_debit_amount'];
+
+            return new ApiJsonResponse(
+                message: 'Бонусы возвращены (возврат товара)',
+                data: [
+                    'refunded_bonus_amount' => abs((int)$refundBonus->amount),
+                    'returned_debit_amount' => (int)$returnedDebitAmount,
+                    'refund_receipt_id' => $refundBonus->id_sell,
+                    'original_receipt_id' => $refundBonus->parent_id_sell,
+                    'refund_amount' => (int)$request->refund_amount
+                ]
+            );
+        } catch (Exception $exception) {
+            return new ApiJsonResponse(
+                400,
+                false,
+                $exception->getMessage()
+            );
+        }
     }
 
     public function promotion(PromotionRequest $request): ApiJsonResponse

@@ -34,6 +34,7 @@ class User extends Authenticatable implements FilamentUser
         'code_send_at',
         'bonus_amount',
         'purchase_amount',
+        'profile_completed_bonus_given',
         'password',
         'role',
         'birthday',
@@ -84,13 +85,36 @@ class User extends Authenticatable implements FilamentUser
     public function addPurchaseAmount($amount)
     {
         $this->purchase_amount += (int) $amount;
+        $this->save();
+    }
+
+    public function subtractPurchaseAmount($amount)
+    {
+        $this->purchase_amount = max(0, $this->purchase_amount - (int) $amount);
+        $this->save();
+    }
+
+    /**
+     * Проверяет заполнены ли ВСЕ поля профиля для получения бонуса
+     * Включает ВСЕ поля анкеты, включая children и marital_status
+     */
+    public function isProfileCompleted(): bool
+    {
+        $allProfileFields = ['name', 'gender', 'city', 'email', 'birthday', 'children', 'marital_status'];
+        
+        foreach ($allProfileFields as $field) {
+            if (empty($this->{$field})) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     public function deviceTokens(): HasMany
     {
         return $this->hasMany(UserDeviceToken::class);
     }
-
 
     public function routeNotificationForExpo(): array
     {

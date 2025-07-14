@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id('id');
+            $table->id();
             $table->string('name')->nullable();
             $table->string('phone')->unique();
             $table->string('device_token')->nullable()->unique();
@@ -23,10 +23,14 @@ return new class extends Migration
             $table->string('password')->nullable();
             $table->string('gender')->nullable();
             $table->string('city')->nullable();
+            $table->string('role')->default('user');
+            $table->decimal('bonus_amount', 10, 2)->default(0);
+            $table->decimal('total_purchases', 10, 2)->default(0);
+            $table->decimal('purchase_amount', 10, 2)->default(0);
+            $table->boolean('profile_completed_bonus')->default(false);
             $table->softDeletes();
             $table->timestamps();
             $table->rememberToken();
-            $table->primary('id');
         });
     }
 
@@ -35,10 +39,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['credential_id']);
-        });
-
         Schema::dropIfExists('users');
     }
 };

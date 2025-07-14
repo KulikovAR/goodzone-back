@@ -20,7 +20,9 @@ class Bonus extends Model
         'expires_at',
         'used',
         'service',
-        'status'
+        'status',
+        'id_sell',
+        'parent_id_sell'
     ];
 
     protected $casts = [

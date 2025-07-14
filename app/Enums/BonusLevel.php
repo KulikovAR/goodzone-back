@@ -13,7 +13,7 @@ enum BonusLevel: string
         return match($this) {
             self::BRONZE => 5,
             self::SILVER => 10,
-            self::GOLD => 30,
+            self::GOLD => 15,
         };
     }
 

@@ -48,6 +48,7 @@ class ExpoNotificationService
                     NotificationType::BONUS_CREDIT => 'Начисление бонусов',
                     NotificationType::BONUS_DEBIT => 'Списание бонусов',
                     NotificationType::BONUS_PROMOTION => 'Акционные бонусы',
+                    NotificationType::BONUS_PROFILE_COMPLETION => 'Бонус за анкету',
                 };
             }
 
@@ -57,6 +58,7 @@ class ExpoNotificationService
                     NotificationType::BONUS_CREDIT => "Вам начислено {$this->data['amount']} бонусов за покупку на сумму {$this->data['purchase_amount']}",
                     NotificationType::BONUS_DEBIT => "Списано {$this->data['debit_amount']} бонусов. Остаток: {$this->data['remaining_bonus']}",
                     NotificationType::BONUS_PROMOTION => "Вам начислено {$this->data['bonus_amount']} акционных бонусов. Действует до {$this->data['expiry_date']}",
+                    NotificationType::BONUS_PROFILE_COMPLETION => "Поздравляем! Вам начислено {$this->data['amount']} бонусов за заполнение анкеты. Спасибо за предоставленную информацию!",
                 };
             }
         };

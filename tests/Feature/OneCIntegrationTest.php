@@ -8,7 +8,6 @@ use Tests\TestCase;
 use App\Services\ExpoNotificationService;
 use App\Enums\NotificationType;
 use App\Services\BonusService;
-use Mockery;
 
 class OneCIntegrationTest extends TestCase
 {
@@ -17,7 +16,7 @@ class OneCIntegrationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->mockPushService = Mockery::mock(ExpoNotificationService::class);
+        $this->mockPushService = $this->createMock(ExpoNotificationService::class);
         $this->app->instance(ExpoNotificationService::class, $this->mockPushService);
 
         $this->app->instance(BonusService::class, new BonusService($this->mockPushService));
@@ -29,12 +28,12 @@ class OneCIntegrationTest extends TestCase
         $oneCUser = User::factory()->oneC()->create();
         $oneCToken = $oneCUser->createToken('test-token')->plainTextToken;
 
-        $this->mockPushService->shouldReceive('send')
-            ->once()
+        $this->mockPushService->expects($this->once())
+            ->method('send')
             ->with(
-                Mockery::type(User::class),
+                $this->isInstanceOf(User::class),
                 NotificationType::BONUS_CREDIT,
-                Mockery::any()
+                $this->anything()
             );
 
         $response = $this->withHeaders([
@@ -42,7 +41,7 @@ class OneCIntegrationTest extends TestCase
         ])->postJson('/api/bonus/credit', [
             'phone' => $regularUser->phone,
             'purchase_amount' => 1000,
-            'bonus_amount' => 50
+            'id_sell' => 'TEST_RECEIPT_' . time()
         ]);
 
         $response->assertOk();
@@ -58,7 +57,7 @@ class OneCIntegrationTest extends TestCase
         ])->postJson('/api/bonus/credit', [
             'phone' => $regularUser->phone,
             'purchase_amount' => 1000,
-            'bonus_amount' => 50
+            'id_sell' => 'TEST_RECEIPT_' . time()
         ]);
 
         $response->assertStatus(403);
@@ -84,7 +83,7 @@ class OneCIntegrationTest extends TestCase
         
         // Проверяем, что повторный запуск не создает нового пользователя
         $this->artisan('user:create-1c')
-            ->expectsOutputToContain('1C User Token:')
+            ->expectsConfirmation('Do you want to create a new token for existing user?', 'no')
             ->assertExitCode(0);
 
         $currentUser = User::where('role', UserRole::ONE_C)->first();

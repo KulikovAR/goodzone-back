@@ -11,7 +11,7 @@ class CreditRequest extends FormRequest
         return [
             'phone' => ['required', 'string', 'exists:users,phone'],
             'purchase_amount' => ['required', 'numeric', 'min:0'],
-            'bonus_amount' => ['required', 'numeric', 'min:0'],
+            'id_sell' => ['required', 'string', 'max:255'],
         ];
     }
 }

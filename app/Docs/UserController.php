@@ -8,7 +8,7 @@ class UserController
      * @OA\Get(
      *     path="/user",
      *     summary="Получение данных пользователя",
-     *     description="Возвращает данные авторизованного пользователя",
+     *     description="Возвращает данные авторизованного пользователя. Обязательные поля для заполнения профиля: name, gender, city, email, birthday. Поля children и marital_status являются опциональными.",
      *     tags={"User"},
      *     security={{"api": {}}},
      *     @OA\Response(
@@ -49,7 +49,7 @@ class UserController
      * @OA\Put(
      *     path="/user/update",
      *     summary="Обновление данных пользователя",
-     *     description="Обновляет данные авторизованного пользователя",
+     *     description="Обновляет данные авторизованного пользователя. При заполнении ВСЕХ полей профиля (name, gender, city, email, birthday, children, marital_status) автоматически начисляется бонус 500 единиц за заполнение анкеты (однократно) и отправляется push-уведомление.",
      *     tags={"User"},
      *     security={{"api": {}}},
      *     @OA\RequestBody(

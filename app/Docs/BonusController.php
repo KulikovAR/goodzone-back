@@ -47,58 +47,6 @@ class BonusController
     }
 
     /**
-     * @OA\Get(
-     *     path="/bonus/info-integration",
-     *     summary="Получение информации о бонусах",
-     *     description="Возвращает текущий баланс бонусов, уровень пользователя и информацию о прогрессе к следующему уровню",
-     *     tags={"Bonus"},
-     *     security={{"api": {}}},
-     *     @OA\Parameter(
-     *      name="id",
-     *      description="phone",
-     *      example="+7111111111",
-     *      required=true,
-     *      in="query",
-     *      @OA\Schema(
-     *          type="string"
-     *          )
-     *      ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Успешное получение информации",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="ok", type="boolean", example=true),
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="object",
-     *                 @OA\Property(property="bonus_amount", type="number", example=100),
-     *                 @OA\Property(property="level", type="string", example="bronze", enum={"bronze", "silver", "gold"}),
-     *                 @OA\Property(property="cashback_percent", type="number", example=5),
-     *                 @OA\Property(property="total_purchase_amount", type="number", example=5000),
-     *                 @OA\Property(property="next_level", type="string", example="silver", nullable=true),
-     *                 @OA\Property(property="next_level_min_amount", type="number", example=10000, nullable=true),
-     *                 @OA\Property(property="progress_to_next_level", type="number", example=50)
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=401,
-     *         description="Не авторизован",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
-     *         )
-     *     )
-     * )
-     */
-    public function infoIntegration()
-    {
-        //
-    }
-
-    /**
      * @OA\Post(
      *     path="/bonus/credit",
      *     summary="Начисление бонусов",
@@ -109,10 +57,10 @@ class BonusController
      *         required=true,
      *         @OA\JsonContent(
      *             type="object",
-     *             required={"phone", "bonus_amount", "purchase_amount"},
+     *             required={"phone", "purchase_amount", "id_sell"},
      *             @OA\Property(property="phone", type="string", example="+79991234567", description="Номер телефона пользователя"),
-     *             @OA\Property(property="bonus_amount", type="number", example=100, description="Сумма начисляемых бонусов"),
-     *             @OA\Property(property="purchase_amount", type="number", example=1000, description="Сумма покупки")
+     *             @OA\Property(property="purchase_amount", type="number", example=1000, description="Сумма покупки"),
+     *             @OA\Property(property="id_sell", type="string", example="RECEIPT_123456", description="ID чека продажи от 1С")
      *         )
      *     ),
      *
@@ -179,9 +127,11 @@ class BonusController
      *         required=true,
      *         @OA\JsonContent(
      *             type="object",
-     *             required={"phone", "debit_amount"},
+     *             required={"phone", "debit_amount", "id_sell"},
      *             @OA\Property(property="phone", type="string", example="+79991234567", description="Номер телефона пользователя"),
-     *             @OA\Property(property="debit_amount", type="number", example=50, description="Сумма списываемых бонусов")
+     *             @OA\Property(property="debit_amount", type="number", example=50, description="Сумма списываемых бонусов"),
+     *             @OA\Property(property="id_sell", type="string", example="DEBIT_123456", description="ID чека списания от 1С"),
+     *             @OA\Property(property="parent_id_sell", type="string", example="RECEIPT_123456", description="ID родительского чека (опционально)")
      *         )
      *     ),
      *
@@ -227,6 +177,76 @@ class BonusController
     public function debit()
     {
         //
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/bonus/refund",
+     *     summary="Возврат бонусов (отмена покупки)",
+     *     description="Отменяет начисление бонусов за конкретную покупку и возвращает пропорциональную часть списанных бонусов. При возврате: 1) Уменьшается сумма покупок пользователя на сумму возврата, 2) Пересчитывается уровень пользователя, 3) Отменяется пропорциональная часть начисленных бонусов по текущему уровню, 4) Возвращается пропорциональная часть списанных бонусов по данному чеку (если таковые были).",
+     *     tags={"Bonus"},
+     *     security={{"api": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"phone", "id_sell", "parent_id_sell", "refund_amount"},
+     *             @OA\Property(property="phone", type="string", example="+79991234567", description="Номер телефона пользователя"),
+     *             @OA\Property(property="id_sell", type="string", example="REFUND_789012", description="ID чека возврата от 1С"),
+     *             @OA\Property(property="parent_id_sell", type="string", example="RECEIPT_123456", description="ID чека продажи, по которому делается возврат"),
+     *             @OA\Property(property="refund_amount", type="number", example=500, description="Сумма возврата товара")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Успешный возврат",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="ok", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Бонусы возвращены (возврат товара)"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="refunded_bonus_amount", type="integer", example=25, description="Сумма отмененных начисленных бонусов"),
+     *                 @OA\Property(property="returned_debit_amount", type="integer", example=25, description="Сумма возвращенных списанных бонусов"),
+     *                 @OA\Property(property="refund_receipt_id", type="string", example="REFUND_789012", description="ID чека возврата"),
+     *                 @OA\Property(property="original_receipt_id", type="string", example="RECEIPT_123456", description="ID исходного чека продажи"),
+     *                 @OA\Property(property="refund_amount", type="integer", example=500, description="Сумма возврата товара")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Ошибка возврата",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="ok", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Исходный чек продажи с ID RECEIPT_123456 не найден для данного пользователя")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Не авторизован",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Пользователь не найден",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\User]")
+     *         )
+     *     )
+     * )
+     */
+    public function refund()
+    {
+        // only docs
     }
 
     /**
@@ -436,6 +456,6 @@ class BonusController
      */
     public function promotionalHistory()
     {
-
+        
     }
 }

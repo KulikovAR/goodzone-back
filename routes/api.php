@@ -3,6 +3,7 @@
 use App\Http\Controllers\AssetsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BonusController;
+use App\Http\Controllers\OneCController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,10 +20,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'show']);
 
     Route::middleware('Check1cRole')->group(function () {
-        Route::get('/bonus/info-integration', [BonusController::class, 'infoIntegration']);
         Route::post('/bonus/credit', [BonusController::class, 'credit']);
         Route::post('/bonus/debit', [BonusController::class, 'debit']);
         Route::post('/bonus/promotion', [BonusController::class, 'promotion']);
+        Route::post('/bonus/refund', [BonusController::class, 'refund']);
+        Route::post('/1c/register', [OneCController::class, 'register']);
     });
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
