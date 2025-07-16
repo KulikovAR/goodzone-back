@@ -13,9 +13,12 @@ use App\Services\BonusService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Traits\HandlesBatchOperations;
 
 class BonusController extends Controller
 {
+    use HandlesBatchOperations;
+
     public function __construct(
         private BonusService $bonusService
     )
@@ -36,104 +39,97 @@ class BonusController extends Controller
 
     public function credit(CreditRequest $request): ApiJsonResponse
     {
-        $user = User::where('phone', $request->phone)->firstOrFail();
-
-        try {
-        $bonus = $this->bonusService->creditBonus(
-            $user,
-                $request->purchase_amount,
-                $request->id_sell
+        $results = $this->processBatchOperations(
+            $request->all(),
+            function ($operation) {
+                $user = User::where('phone', $operation['phone'])->firstOrFail();
+                $bonus = $this->bonusService->creditBonus(
+                    $user,
+                    $operation['purchase_amount'],
+                    $operation['id_sell']
+                );
+                return [
+                    'calculated_bonus_amount' => (int)$bonus->amount,
+                    'user_level' => $this->bonusService->getUserLevel($user)->value,
+                    'cashback_percent' => $this->bonusService->getUserLevel($user)->getCashbackPercent()
+                ];
+            }
         );
 
         return new ApiJsonResponse(
             message: 'Бонусы начислены',
-            data: [
-                'calculated_bonus_amount' => (int)$bonus->amount,
-                'user_level' => $this->bonusService->getUserLevel($user)->value,
-                    'cashback_percent' => $this->bonusService->getUserLevel($user)->getCashbackPercent(),
-                    'receipt_id' => $bonus->id_sell
-            ]
+            data: $results
         );
-        } catch (Exception $exception) {
-            return new ApiJsonResponse(
-                400,
-                false,
-                $exception->getMessage()
-            );
-        }
     }
 
     public function debit(DebitRequest $request): ApiJsonResponse
     {
-        $user = User::where('phone', $request->phone)->firstOrFail();
-
-        try {
-            $this->bonusService->debitBonus(
-                $user,
-                $request->debit_amount,
-                $request->id_sell,
-                $request->parent_id_sell
-            );
-        } catch (Exception $exception) {
-            return new ApiJsonResponse(
-                400,
-                false,
-                'Недостаточно бонусов'
-            );
-        }
-
+        $results = $this->processBatchOperations(
+            $request->all(),
+            function ($operation) {
+                $user = User::where('phone', $operation['phone'])->firstOrFail();
+                $this->bonusService->debitBonus(
+                    $user,
+                    $operation['debit_amount'],
+                    $operation['id_sell'],
+                    $operation['parent_id_sell']
+                );
+                return null;
+            }
+        );
 
         return new ApiJsonResponse(
-            message: 'Бонусы списаны'
+            message: 'Бонусы списаны',
+            data: $results
         );
     }
 
     public function refund(RefundRequest $request): ApiJsonResponse
     {
-        $user = User::where('phone', $request->phone)->firstOrFail();
+        $results = $this->processBatchOperations(
+            $request->all(),
+            function ($operation) {
+                $user = User::where('phone', $operation['phone'])->firstOrFail();
+                $refundResult = $this->bonusService->refundBonusByReceipt(
+                    $user,
+                    $operation['id_sell'],
+                    $operation['parent_id_sell'],
+                    $operation['refund_amount']
+                );
+                return [
+                    'refunded_bonus_amount' => abs((int)$refundResult['refund_bonus']->amount),
+                    'returned_debit_amount' => (int)$refundResult['returned_debit_amount'],
+                    'refund_receipt_id' => $refundResult['refund_bonus']->id_sell,
+                    'original_receipt_id' => $refundResult['refund_bonus']->parent_id_sell,
+                    'refund_amount' => (int)$operation['refund_amount']
+                ];
+            }
+        );
 
-        try {
-            $refundResult = $this->bonusService->refundBonusByReceipt(
-                $user,
-                $request->id_sell,
-                $request->parent_id_sell,
-                $request->refund_amount
-            );
-
-            $refundBonus = $refundResult['refund_bonus'];
-            $returnedDebitAmount = $refundResult['returned_debit_amount'];
-
-            return new ApiJsonResponse(
-                message: 'Бонусы возвращены (возврат товара)',
-                data: [
-                    'refunded_bonus_amount' => abs((int)$refundBonus->amount),
-                    'returned_debit_amount' => (int)$returnedDebitAmount,
-                    'refund_receipt_id' => $refundBonus->id_sell,
-                    'original_receipt_id' => $refundBonus->parent_id_sell,
-                    'refund_amount' => (int)$request->refund_amount
-                ]
-            );
-        } catch (Exception $exception) {
-            return new ApiJsonResponse(
-                400,
-                false,
-                $exception->getMessage()
-            );
-        }
+        return new ApiJsonResponse(
+            message: 'Бонусы возвращены (возврат товара)',
+            data: $results
+        );
     }
 
     public function promotion(PromotionRequest $request): ApiJsonResponse
     {
-        $user = User::where('phone', $request->phone)->firstOrFail();
-
-        $bonus = $this->bonusService->creditPromotionalBonus(
-            $user,
-            $request->bonus_amount,
-            Carbon::parse($request->expiry_date)
+        $results = $this->processBatchOperations(
+            $request->all(),
+            function ($operation) {
+                $user = User::where('phone', $operation['phone'])->firstOrFail();
+                $bonus = $this->bonusService->creditPromotionalBonus(
+                    $user,
+                    $operation['bonus_amount'],
+                    Carbon::parse($operation['expiry_date'])
+                );
+                return null;
+            }
         );
 
         return new ApiJsonResponse(
-            message: 'Акционные бонусы начислены'
+            message: 'Акционные бонусы начислены',
+            data: $results
         );
     }
 
