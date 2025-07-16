@@ -37,9 +37,29 @@ class BonusController extends Controller
         );
     }
 
+    private function batchResponse(array $processed, string $successMessage, string $partialMessage = null, string $errorMessage = null): ApiJsonResponse
+    {
+        $httpCode = $processed['http_code'];
+
+        // Автовыбор сообщения
+        $message = match (true) {
+            $httpCode === 200 => $successMessage,
+            $httpCode === 206 => $partialMessage ?? $successMessage,
+            $httpCode === 400 => $errorMessage ?? 'Ошибка при обработке операций',
+            default => 'Неизвестный результат'
+        };
+
+        return new ApiJsonResponse(
+            httpCode: $httpCode,
+            ok: $httpCode === 200 || $httpCode === 206,
+            message: $message,
+            data: $processed['results']
+        );
+    }
+
     public function credit(CreditRequest $request): ApiJsonResponse
     {
-        $results = $this->processBatchOperations(
+        $processed = $this->processBatchOperations(
             $request->all(),
             function ($operation) {
                 $user = User::where('phone', $operation['phone'])->firstOrFail();
@@ -56,15 +76,17 @@ class BonusController extends Controller
             }
         );
 
-        return new ApiJsonResponse(
-            message: 'Бонусы начислены',
-            data: $results
+        return $this->batchResponse(
+            $processed,
+            'Бонусы начислены',
+            'Часть бонусов начислена',
+            'Не удалось начислить бонусы'
         );
     }
 
     public function debit(DebitRequest $request): ApiJsonResponse
     {
-        $results = $this->processBatchOperations(
+        $processed = $this->processBatchOperations(
             $request->all(),
             function ($operation) {
                 $user = User::where('phone', $operation['phone'])->firstOrFail();
@@ -78,15 +100,17 @@ class BonusController extends Controller
             }
         );
 
-        return new ApiJsonResponse(
-            message: 'Бонусы списаны',
-            data: $results
+        return $this->batchResponse(
+            $processed,
+            'Бонусы списаны',
+            'Часть бонусов списана',
+            'Не удалось списать бонусы'
         );
     }
 
     public function refund(RefundRequest $request): ApiJsonResponse
     {
-        $results = $this->processBatchOperations(
+        $processed = $this->processBatchOperations(
             $request->all(),
             function ($operation) {
                 $user = User::where('phone', $operation['phone'])->firstOrFail();
@@ -106,15 +130,17 @@ class BonusController extends Controller
             }
         );
 
-        return new ApiJsonResponse(
-            message: 'Бонусы возвращены (возврат товара)',
-            data: $results
+        return $this->batchResponse(
+            $processed,
+            'Бонусы возвращены (возврат товара)',
+            'Часть бонусов возвращена',
+            'Не удалось вернуть бонусы'
         );
     }
 
     public function promotion(PromotionRequest $request): ApiJsonResponse
     {
-        $results = $this->processBatchOperations(
+        $processed = $this->processBatchOperations(
             $request->all(),
             function ($operation) {
                 $user = User::where('phone', $operation['phone'])->firstOrFail();
@@ -127,9 +153,11 @@ class BonusController extends Controller
             }
         );
 
-        return new ApiJsonResponse(
-            message: 'Акционные бонусы начислены',
-            data: $results
+        return $this->batchResponse(
+            $processed,
+            'Акционные бонусы начислены',
+            'Часть акционных бонусов начислена',
+            'Не удалось начислить акционные бонусы'
         );
     }
 
