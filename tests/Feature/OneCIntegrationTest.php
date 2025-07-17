@@ -38,11 +38,12 @@ class OneCIntegrationTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $oneCToken
-        ])->postJson('/api/bonus/credit', [
+        ])->postJson('/api/bonus/credit', [[
             'phone' => $regularUser->phone,
             'purchase_amount' => 1000,
-            'id_sell' => 'TEST_RECEIPT_' . time()
-        ]);
+            'id_sell' => 'TEST_RECEIPT_' . time(),
+            'timestamp' => now()->toDateTimeString()
+        ]]);
 
         $response->assertOk();
     }
@@ -54,11 +55,12 @@ class OneCIntegrationTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $regularToken
-        ])->postJson('/api/bonus/credit', [
+        ])->postJson('/api/bonus/credit', [[
             'phone' => $regularUser->phone,
             'purchase_amount' => 1000,
-            'id_sell' => 'TEST_RECEIPT_' . time()
-        ]);
+            'id_sell' => 'TEST_RECEIPT_' . time(),
+            'timestamp' => now()->toDateTimeString()
+        ]]);
 
         $response->assertStatus(403);
     }

@@ -13,9 +13,12 @@ use App\Services\BonusService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Traits\HandlesBatchOperations;
 
 class BonusController extends Controller
 {
+    use HandlesBatchOperations;
+
     public function __construct(
         private BonusService $bonusService
     )
@@ -34,158 +37,140 @@ class BonusController extends Controller
         );
     }
 
-    public function credit(CreditRequest $request): ApiJsonResponse
+    private function batchResponse(array $processed, string $successMessage, string $partialMessage = null, string $errorMessage = null): ApiJsonResponse
     {
-        $user = User::where('phone', $request->phone)->firstOrFail();
+        $httpCode = $processed['http_code'];
 
-        try {
-        $bonus = $this->bonusService->creditBonus(
-            $user,
-                $request->purchase_amount,
-                $request->id_sell
-        );
+        // Автовыбор сообщения
+        $message = match (true) {
+            $httpCode === 200 => $successMessage,
+            $httpCode === 206 => $partialMessage ?? $successMessage,
+            $httpCode === 400 => $errorMessage ?? 'Ошибка при обработке операций',
+            default => 'Неизвестный результат'
+        };
 
         return new ApiJsonResponse(
-            message: 'Бонусы начислены',
-            data: [
-                'calculated_bonus_amount' => (int)$bonus->amount,
-                'user_level' => $this->bonusService->getUserLevel($user)->value,
-                    'cashback_percent' => $this->bonusService->getUserLevel($user)->getCashbackPercent(),
-                    'receipt_id' => $bonus->id_sell
-            ]
+            httpCode: $httpCode,
+            ok: $httpCode === 200 || $httpCode === 206,
+            message: $message,
+            data: $processed['results']
         );
-        } catch (Exception $exception) {
-            return new ApiJsonResponse(
-                400,
-                false,
-                $exception->getMessage()
-            );
-        }
+    }
+
+    public function credit(CreditRequest $request): ApiJsonResponse
+    {
+        $processed = $this->processBatchOperations(
+            $request->all(),
+            function ($operation) {
+                $user = User::where('phone', $operation['phone'])->firstOrFail();
+                $bonus = $this->bonusService->creditBonus(
+                    $user,
+                    $operation['purchase_amount'],
+                    $operation['id_sell']
+                );
+                return [
+                    'calculated_bonus_amount' => (int)$bonus->amount,
+                    'user_level' => $this->bonusService->getUserLevel($user)->value,
+                    'cashback_percent' => $this->bonusService->getUserLevel($user)->getCashbackPercent()
+                ];
+            }
+        );
+
+        return $this->batchResponse(
+            $processed,
+            'Бонусы начислены',
+            'Часть бонусов начислена',
+            'Не удалось начислить бонусы'
+        );
     }
 
     public function debit(DebitRequest $request): ApiJsonResponse
     {
-        $user = User::where('phone', $request->phone)->firstOrFail();
+        $processed = $this->processBatchOperations(
+            $request->all(),
+            function ($operation) {
+                $user = User::where('phone', $operation['phone'])->firstOrFail();
+                $this->bonusService->debitBonus(
+                    $user,
+                    $operation['debit_amount'],
+                    $operation['id_sell'],
+                    $operation['parent_id_sell']
+                );
+                // Получаем обновленную информацию о бонусах пользователя
+                $bonusInfo = $this->bonusService->getBonusInfo($user);
+                return [
+                    'debit_amount' => (int)$operation->debit_amount,
+                    'remaining_balance' => (int)$bonusInfo['bonus_amount'],
+                    'debit_receipt_id' => $operation->id_sell,
+                    'parent_receipt_id' => $operation->parent_id_sell
+                ];
+            }
+        );
 
-        try {
-            $this->bonusService->debitBonus(
-                $user,
-                $request->debit_amount,
-                $request->id_sell,
-                $request->parent_id_sell
-            );
-        } catch (Exception $exception) {
-            // Проверяем, является ли ошибка связанной с лимитом списания
-            if (str_contains($exception->getMessage(), 'Сумма списания превышает максимально допустимую')) {
-                return new ApiJsonResponse(
-                    400,
-                    false,
-                    $exception->getMessage()
-                );
-            }
-            
-            // Проверяем, является ли ошибка связанной с отсутствием parent_id_sell
-            if (str_contains($exception->getMessage(), 'Необходимо указать parent_id_sell')) {
-                return new ApiJsonResponse(
-                    400,
-                    false,
-                    $exception->getMessage()
-                );
-            }
-            
-            // Проверяем, является ли ошибка связанной с отсутствием исходного чека
-            if (str_contains($exception->getMessage(), 'не найден')) {
-                return new ApiJsonResponse(
-                    400,
-                    false,
-                    $exception->getMessage()
-                );
-            }
-            
-            return new ApiJsonResponse(
-                400,
-                false,
-                'Недостаточно бонусов'
-            );
-        }
-
-        // Получаем обновленную информацию о бонусах пользователя
-        $bonusInfo = $this->bonusService->getBonusInfo($user);
-        
-        return new ApiJsonResponse(
-            message: 'Бонусы списаны',
-            data: [
-                'debit_amount' => (int)$request->debit_amount,
-                'remaining_balance' => (int)$bonusInfo['bonus_amount'],
-                'debit_receipt_id' => $request->id_sell,
-                'parent_receipt_id' => $request->parent_id_sell
-            ]
+        return $this->batchResponse(
+            $processed,
+            'Бонусы списаны',
+            'Часть бонусов списана',
+            'Не удалось списать бонусы'
         );
     }
 
     public function refund(RefundRequest $request): ApiJsonResponse
     {
-        $user = User::where('phone', $request->phone)->firstOrFail();
-
-        try {
-            $refundResult = $this->bonusService->refundBonusByReceipt(
-                $user,
-                $request->id_sell,
-                $request->parent_id_sell,
-                $request->refund_amount
-            );
-
-            $refundBonus = $refundResult['refund_bonus'];
-            $returnedDebitAmount = $refundResult['returned_debit_amount'];
-
-            // Если parent_id_sell отсутствует, это ошибка!
-            if (!$refundBonus->parent_id_sell) {
-                return new ApiJsonResponse(
-                    400,
-                    false,
-                    'Ошибка возврата: исходный чек не найден или возврат некорректен.'
+        $processed = $this->processBatchOperations(
+            $request->all(),
+            function ($operation) {
+                $user = User::where('phone', $operation['phone'])->firstOrFail();
+                $refundResult = $this->bonusService->refundBonusByReceipt(
+                    $user,
+                    $operation['id_sell'],
+                    $operation['parent_id_sell'],
+                    $operation['refund_amount']
                 );
+                return [
+                    'refunded_bonus_amount' => abs((int)$refundResult['refund_bonus']->amount),
+                    'returned_debit_amount' => (int)$refundResult['returned_debit_amount'],
+                    'refund_receipt_id' => $refundResult['refund_bonus']->id_sell,
+                    'original_receipt_id' => $refundResult['refund_bonus']->parent_id_sell,
+                    'refund_amount' => (int)$operation['refund_amount']
+                ];
             }
+        );
 
-            return new ApiJsonResponse(
-                message: 'Бонусы возвращены (возврат товара)',
-                data: [
-                    'refunded_bonus_amount' => abs((int)$refundBonus->amount),
-                    'returned_debit_amount' => (int)$returnedDebitAmount,
-                    'refund_receipt_id' => $refundBonus->id_sell,
-                    'original_receipt_id' => $refundBonus->parent_id_sell,
-                    'refund_amount' => (int)$request->refund_amount
-                ]
-            );
-        } catch (\Exception $exception) {
-            return new ApiJsonResponse(
-                400,
-                false,
-                $exception->getMessage()
-            );
-        }
+        return $this->batchResponse(
+            $processed,
+            'Бонусы возвращены (возврат товара)',
+            'Часть бонусов возвращена',
+            'Не удалось вернуть бонусы'
+        );
     }
 
     public function promotion(PromotionRequest $request): ApiJsonResponse
     {
-        $user = User::where('phone', $request->phone)->firstOrFail();
-
-        $bonus = $this->bonusService->creditPromotionalBonus(
-            $user,
-            $request->bonus_amount,
-            Carbon::parse($request->expiry_date)
+        $processed = $this->processBatchOperations(
+            $request->all(),
+            function ($operation) {
+                $user = User::where('phone', $operation['phone'])->firstOrFail();
+                $bonus = $this->bonusService->creditPromotionalBonus(
+                    $user,
+                    $operation['bonus_amount'],
+                    Carbon::parse($operation['expiry_date'])
+                );
+                // Получаем обновленную информацию о бонусах пользователя
+                $bonusInfo = $this->bonusService->getBonusInfo($user);
+                return [
+                    'bonus_amount' => (int)$bonus->amount,
+                    'expires_at' => $bonus->expires_at?->toISOString(),
+                    'total_balance' => (int)$bonusInfo['bonus_amount']
+                ];
+            }
         );
 
-        // Получаем обновленную информацию о бонусах пользователя
-        $bonusInfo = $this->bonusService->getBonusInfo($user);
-        
-        return new ApiJsonResponse(
-            message: 'Акционные бонусы начислены',
-            data: [
-                'bonus_amount' => (int)$bonus->amount,
-                'expires_at' => $bonus->expires_at?->toISOString(),
-                'total_balance' => (int)$bonusInfo['bonus_amount']
-            ]
+        return $this->batchResponse(
+            $processed,
+            'Акционные бонусы начислены',
+            'Часть акционных бонусов начислена',
+            'Не удалось начислить акционные бонусы'
         );
     }
 

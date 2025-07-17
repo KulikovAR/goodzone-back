@@ -99,11 +99,12 @@ class BonusTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/bonus/credit', [
+        ])->postJson('/api/bonus/credit', [[
             'phone' => $user->phone,
             'purchase_amount' => 1000,
             'id_sell' => 'TEST_RECEIPT_' . time(),
-        ]);
+            'timestamp' => now()->toDateTimeString()
+        ]]);
 
         $response->assertOk();
     }
@@ -144,11 +145,12 @@ class BonusTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/bonus/credit', [
+        ])->postJson('/api/bonus/credit', [[
             'phone' => $user->phone,
             'purchase_amount' => 1000,
             'id_sell' => 'TEST_RECEIPT_' . time(),
-        ]);
+            'timestamp' => now()->toDateTimeString()
+        ]]);
 
         $response->assertOk()
             ->assertJson([
@@ -157,10 +159,15 @@ class BonusTest extends TestCase
             ])
             ->assertJsonStructure([
                 'data' => [
-                    'calculated_bonus_amount',
-                    'user_level',
-                    'cashback_percent',
-                    'receipt_id',
+                    '*' => [
+                        'id',
+                        'success',
+                        'data' => [
+                            'calculated_bonus_amount',
+                            'user_level',
+                            'cashback_percent',
+                        ]
+                    ]
                 ],
             ]);
 
@@ -194,12 +201,13 @@ class BonusTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/bonus/debit', [
+        ])->postJson('/api/bonus/debit', [[
             'phone' => $user->phone,
             'debit_amount' => 300, // 30% от 1000 (purchase_amount)
             'id_sell' => 'TEST_DEBIT_' . time(),
-            'parent_id_sell' => 'PARENT_RECEIPT_123',
-        ]);
+            'parent_id_sell' => 'TEST_DEBIT_PARENT_' . time(),
+            'timestamp' => now()->toDateTimeString()
+        ]]);
 
         $response->assertOk()
             ->assertJson([
@@ -243,12 +251,13 @@ class BonusTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/bonus/refund', [
+        ])->postJson('/api/bonus/refund', [[
             'phone' => $user->phone,
             'refund_amount' => 500,
             'id_sell' => $refundReceiptId,
             'parent_id_sell' => $parentReceiptId,
-        ]);
+            'timestamp' => now()->toDateTimeString()
+        ]]);
 
         $response->assertOk()
             ->assertJson([
@@ -257,8 +266,14 @@ class BonusTest extends TestCase
             ])
             ->assertJsonStructure([
                 'data' => [
-                    'refunded_bonus_amount',
-                    'returned_debit_amount',
+                    '*' => [
+                        'id',
+                        'success',
+                        'data' => [
+                            'refunded_bonus_amount',
+                            'returned_debit_amount',
+                        ]
+                    ]
                 ],
             ]);
 
@@ -275,6 +290,47 @@ class BonusTest extends TestCase
         // Проверяем, что сумма покупок уменьшилась
         $user->refresh();
         $this->assertEquals(500, $user->purchase_amount);
+    }
+
+    #[Test]
+    public function one_c_user_can_credit_promotional_bonus()
+    {
+        $user = User::factory()->create();
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
+
+        $payload = [[
+            'phone' => $user->phone,
+            'bonus_amount' => 300,
+            'expiry_date' => now()->addDays(10)->toDateString(),
+            'id_sell' => 'PROMO_1_' . time(),
+            'timestamp' => now()->toDateTimeString(),
+        ]];
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/bonus/promotion', $payload);
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'message' => 'Акционные бонусы начислены',
+            ])
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => [
+                        'id',
+                        'success',
+                        'data',
+                    ]
+                ]
+            ]);
+
+        $this->assertDatabaseHas('bonuses', [
+            'user_id' => $user->id,
+            'amount' => 300,
+            'type' => 'promotional',
+        ]);
     }
 
     #[Test]
@@ -312,12 +368,13 @@ class BonusTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/bonus/refund', [
+        ])->postJson('/api/bonus/refund', [[
             'phone' => $user->phone,
             'refund_amount' => 500, // возвращаем 50% от покупки
             'id_sell' => $refundReceiptId,
             'parent_id_sell' => $parentReceiptId,
-        ]);
+            'timestamp' => now()->toDateTimeString()
+        ]]);
 
         $response->assertOk();
 
@@ -377,12 +434,13 @@ class BonusTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/bonus/refund', [
+        ])->postJson('/api/bonus/refund', [[
             'phone' => $user->phone,
             'refund_amount' => 500,
             'id_sell' => $refundReceiptId,
             'parent_id_sell' => $parentReceiptId,
-        ]);
+            'timestamp' => now()->toDateTimeString()
+        ]]);
 
         $response->assertOk();
 
@@ -416,18 +474,27 @@ class BonusTest extends TestCase
         $user->bonus_amount = 100;
         $user->save();
 
+        $idSell = 'TEST_DEBIT_' . time();
+
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/bonus/debit', [
+        ])->postJson('/api/bonus/debit', [[
             'phone' => $user->phone,
             'debit_amount' => 500,
-            'id_sell' => 'TEST_DEBIT_' . time(),
-        ]);
-
+            'id_sell' => $idSell,
+            'parent_id_sell' => 'TEST_DEBIT_PARENT_' . time(),
+            'timestamp' => now()->toDateTimeString()
+        ]]);
+        
         $response->assertStatus(400)
+            ->assertJsonFragment([
+                'id' => $idSell,
+                'success' => false,
+                'error' => 'Недостаточно бонусов',
+            ])
             ->assertJson([
                 'ok' => false,
-                'message' => 'Недостаточно бонусов',
+                'message' => 'Не удалось списать бонусы',
             ]);
     }
 
@@ -440,17 +507,23 @@ class BonusTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/bonus/refund', [
+        ])->postJson('/api/bonus/refund', [[
             'phone' => $user->phone,
             'refund_amount' => 500,
             'id_sell' => 'REFUND_123',
             'parent_id_sell' => 'NONEXISTENT_RECEIPT',
-        ]);
+            'timestamp' => now()->toDateTimeString()
+        ]]);
 
         $response->assertStatus(400)
+            ->assertJsonFragment([
+                'id' => 'REFUND_123',
+                'success' => false,
+                'error' => 'Исходный чек продажи с ID NONEXISTENT_RECEIPT не найден для данного пользователя',
+            ])
             ->assertJson([
                 'ok' => false,
-                'message' => 'Исходный чек продажи с ID NONEXISTENT_RECEIPT не найден для данного пользователя',
+                'message' => 'Не удалось вернуть бонусы',
             ]);
     }
 
@@ -478,17 +551,23 @@ class BonusTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/bonus/refund', [
+        ])->postJson('/api/bonus/refund', [[
             'phone' => $user->phone,
             'refund_amount' => 1200, // пытаемся вернуть больше чем было куплено
             'id_sell' => 'REFUND_123',
             'parent_id_sell' => $parentReceiptId,
-        ]);
+            'timestamp' => now()->toDateTimeString()
+        ]]);
 
         $response->assertStatus(400)
+            ->assertJsonFragment([
+                'id' => 'REFUND_123',
+                'success' => false,
+                'error' => 'Сумма возврата превышает сумму исходной покупки. Уже возвращено: 0, попытка возврата: 1200, исходная сумма: 1000',
+            ])
             ->assertJson([
                 'ok' => false,
-                'message' => 'Сумма возврата превышает сумму исходной покупки. Уже возвращено: 0, попытка возврата: 1200, исходная сумма: 1000',
+                'message' => 'Не удалось вернуть бонусы',
             ]);
     }
 
@@ -648,6 +727,322 @@ class BonusTest extends TestCase
                     ],
                     'total_count',
                 ],
+            ]);
+    }
+
+    #[Test]
+    public function one_c_user_can_credit_bonus_to_multiple_users()
+    {
+        $users = User::factory()->count(3)->create();
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
+
+        $payload = $users->map(function ($user, $index) {
+            return [
+                'phone' => $user->phone,
+                'purchase_amount' => 1000 + $index * 500, // 1000, 1500
+                'id_sell' => 'BATCH_CREDIT_' . $index . '_' . time(),
+                'timestamp' => now()->toDateTimeString(),
+            ];
+        })->toArray();
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/bonus/credit', $payload);
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'message' => 'Бонусы начислены',
+            ])
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => [
+                        'id',
+                        'success',
+                        'data' => [
+                            'calculated_bonus_amount',
+                            'user_level',
+                            'cashback_percent',
+                        ]
+                    ]
+                ],
+            ]);
+
+        foreach ($users as $user) {
+            $this->assertDatabaseHas('bonuses', [
+                'user_id' => $user->id,
+                'type' => 'regular',
+            ]);
+        }
+    }
+
+    #[Test]
+    public function one_c_user_can_debit_bonus_from_multiple_users()
+    {
+        $users = User::factory()->count(2)->create();
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
+
+        foreach ($users as $user) {
+            Bonus::create([
+                'user_id' => $user->id,
+                'amount' => 1000,
+                'type' => 'regular',
+                'status' => 'show-and-calc',
+            ]);
+
+            $user->bonus_amount = 1000;
+            $user->save();
+        }
+
+        $payload = $users->map(function ($user, $index) {
+            return [
+                'phone' => $user->phone,
+                'debit_amount' => 500,
+                'id_sell' => 'BATCH_DEBIT_' . $index . '_' . time(),
+                'parent_id_sell' => 'BATCH_PARENT_' . $index . '_' . time(),
+                'timestamp' => now()->toDateTimeString(),
+            ];
+        })->toArray();
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/bonus/debit', $payload);
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'message' => 'Бонусы списаны',
+            ]);
+
+        foreach ($users as $user) {
+            $this->assertDatabaseHas('bonuses', [
+                'user_id' => $user->id,
+                'amount' => -500,
+                'type' => 'regular',
+            ]);
+        }
+    }
+
+    #[Test]
+    public function one_c_user_can_refund_bonus_to_multiple_users()
+    {
+        $users = User::factory()->count(2)->create();
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
+
+        $payload = [];
+
+        foreach ($users as $index => $user) {
+            $parentId = 'REFUND_PARENT_' . $index . '_' . time();
+            $refundId = 'REFUND_ID_' . $index . '_' . time();
+
+            Bonus::create([
+                'user_id' => $user->id,
+                'amount' => 50,
+                'purchase_amount' => 1000,
+                'type' => 'regular',
+                'status' => 'show-and-calc',
+                'id_sell' => $parentId,
+            ]);
+
+            $user->bonus_amount = 50;
+            $user->purchase_amount = 1000;
+            $user->save();
+
+            $payload[] = [
+                'phone' => $user->phone,
+                'refund_amount' => 500,
+                'id_sell' => $refundId,
+                'parent_id_sell' => $parentId,
+                'timestamp' => now()->toDateTimeString(),
+            ];
+        }
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/bonus/refund', $payload);
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'message' => 'Бонусы возвращены (возврат товара)',
+            ])
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => [
+                        'id',
+                        'success',
+                        'data' => [
+                            'refunded_bonus_amount',
+                            'returned_debit_amount',
+                        ]
+                    ]
+                ]
+            ]);
+
+        foreach ($users as $user) {
+            $this->assertDatabaseHas('bonuses', [
+                'user_id' => $user->id,
+                'amount' => -25,
+                'type' => 'refund',
+            ]);
+
+            $user->refresh();
+            $this->assertEquals(500, $user->purchase_amount);
+        }
+    }
+
+    #[Test]
+    public function one_c_user_can_credit_multiple_promotional_bonuses()
+    {
+        $users = User::factory()->count(2)->create();
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
+
+        $payload = $users->map(function ($user, $index) {
+            return [
+                'phone' => $user->phone,
+                'bonus_amount' => 100 + $index * 100, // 100, 200
+                'expiry_date' => now()->addDays(30)->toDateString(),
+                'id_sell' => 'PROMO_BATCH_' . $index . '_' . time(),
+                'timestamp' => now()->toDateTimeString(),
+            ];
+        })->toArray();
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/bonus/promotion', $payload);
+
+        $response->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'message' => 'Акционные бонусы начислены',
+            ])
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => [
+                        'id',
+                        'success',
+                        'data',
+                    ]
+                ]
+            ]);
+
+        foreach ($users as $index => $user) {
+            $this->assertDatabaseHas('bonuses', [
+                'user_id' => $user->id,
+                'amount' => 100 + $index * 100,
+                'type' => 'promotional',
+            ]);
+        }
+    }
+
+    #[Test]
+    public function promotion_batch_returns_206_when_some_operations_fail()
+    {
+        $users = User::factory()->count(2)->create();
+        $phone1 = $users[0]->phone;
+        $phone2 = $users[1]->phone;
+
+        $users[1]->delete(); // вторая операция сломается
+
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
+
+        // Один валидный, один несуществующий телефон
+        $payload = [
+            [
+                'phone' => $phone1,
+                'bonus_amount' => 100,
+                'expiry_date' => now()->addDays(30)->toDateString(),
+                'id_sell' => 'PROMO_OK_' . time(),
+                'timestamp' => now()->toDateTimeString(),
+            ],
+            [
+                'phone' => $phone2, // несуществующий пользователь
+                'bonus_amount' => 100,
+                'expiry_date' => now()->addDays(30)->toDateString(),
+                'id_sell' => 'PROMO_FAIL_' . time(),
+                'timestamp' => now()->toDateTimeString(),
+            ]
+        ];
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/bonus/promotion', $payload);
+
+        $response->assertStatus(206)
+            ->assertJson([
+                'ok' => true,
+                'message' => 'Часть акционных бонусов начислена',
+            ])
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => [
+                        'id',
+                        'success',
+                    ],
+                ]
+            ]);
+
+        $this->assertDatabaseHas('bonuses', [
+            'user_id' => $users[0]->id,
+            'amount' => 100,
+            'type' => 'promotional',
+        ]);
+    }
+
+    #[Test]
+    public function promotion_batch_returns_400_when_all_operations_fail()
+    {
+        $oneCUser = User::factory()->oneC()->create();
+        $token = $oneCUser->createToken('test-token')->plainTextToken;
+
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+
+        $phone1 = $user1->phone;
+        $phone2 = $user2->phone;
+
+        $user1->delete();
+        $user2->delete();
+
+        $payload = [
+            [
+                'phone' => $phone1, // несуществующий
+                'bonus_amount' => 100,
+                'expiry_date' => now()->addDays(30)->toDateString(),
+                'id_sell' => 'PROMO_FAIL_1_' . time(),
+                'timestamp' => now()->toDateTimeString(),
+            ],
+            [
+                'phone' => $phone2, // тоже не существует
+                'bonus_amount' => 200,
+                'expiry_date' => now()->addDays(30)->toDateString(),
+                'id_sell' => 'PROMO_FAIL_2_' . time(),
+                'timestamp' => now()->toDateTimeString(),
+            ]
+        ];
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/bonus/promotion', $payload);
+
+        $response->assertStatus(400)
+            ->assertJson([
+                'ok' => false,
+            ])
+            ->assertJsonStructure([
+                'message',
+                'data' => [
+                    '*' => [
+                        'id',
+                        'success',
+                        'error',
+                    ]
+                ]
             ]);
     }
 }
