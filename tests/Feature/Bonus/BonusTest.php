@@ -179,12 +179,14 @@ class BonusTest extends TestCase
         $oneCUser = User::factory()->oneC()->create();
         $token = $oneCUser->createToken('test-token')->plainTextToken;
 
-        // Создаем бонусы для пользователя
+        // Создаем исходный чек покупки
         Bonus::create([
             'user_id' => $user->id,
             'amount' => 1000,
             'type' => 'regular',
             'status' => 'show-and-calc',
+            'id_sell' => 'PARENT_RECEIPT_123',
+            'purchase_amount' => 1000,
         ]);
 
         $user->bonus_amount = 1000;
@@ -194,8 +196,9 @@ class BonusTest extends TestCase
             'Authorization' => 'Bearer ' . $token,
         ])->postJson('/api/bonus/debit', [
             'phone' => $user->phone,
-            'debit_amount' => 500,
+            'debit_amount' => 300, // 30% от 1000 (purchase_amount)
             'id_sell' => 'TEST_DEBIT_' . time(),
+            'parent_id_sell' => 'PARENT_RECEIPT_123',
         ]);
 
         $response->assertOk()
@@ -207,9 +210,10 @@ class BonusTest extends TestCase
         // Проверяем, что запись о списании была создана
         $this->assertDatabaseHas('bonuses', [
             'user_id' => $user->id,
-            'amount' => -500,
+            'amount' => -300,
             'type' => 'regular',
             'status' => 'show-not-calc',
+            'parent_id_sell' => 'PARENT_RECEIPT_123',
         ]);
     }
 

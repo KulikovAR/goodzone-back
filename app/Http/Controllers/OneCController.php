@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\RegisterFromOneCRequest;
+use App\Http\Requests\OneC\ClientInfoRequest;
 use App\Http\Responses\ApiJsonResponse;
 use App\Models\User;
 use App\Services\BonusService;
@@ -68,6 +69,68 @@ class OneCController extends Controller
                 httpCode: 500,
                 ok: false,
                 message: 'Ошибка при регистрации пользователя: ' . $e->getMessage()
+            );
+        }
+    }
+
+    /**
+     * Получить информацию о клиентах по номерам телефонов
+     */
+    public function getClientInfo(ClientInfoRequest $request): ApiJsonResponse
+    {
+        try {
+            $phones = $request->phones;
+            $clients = [];
+
+            foreach ($phones as $phone) {
+                $user = User::where('phone', $phone)->first();
+
+                if ($user) {
+                    // Пользователь найден - получаем информацию о бонусах
+                    $bonusInfo = $this->bonusService->getBonusInfo($user);
+                    
+                    $clients[] = [
+                        'phone' => $phone,
+                        'is_registered' => true,
+                        'cashback_percent' => $bonusInfo['cashback_percent'],
+                        'bonus_amount' => $bonusInfo['bonus_amount'],
+                        'level' => $bonusInfo['level'],
+                        'total_purchase_amount' => $bonusInfo['total_purchase_amount'],
+                    ];
+                } else {
+                    // Пользователь не найден
+                    $clients[] = [
+                        'phone' => $phone,
+                        'is_registered' => false,
+                        'cashback_percent' => null,
+                        'bonus_amount' => null,
+                        'level' => null,
+                        'total_purchase_amount' => null,
+                    ];
+                }
+            }
+
+            return new ApiJsonResponse(
+                message: 'Информация о клиентах получена',
+                data: [
+                    'clients' => $clients,
+                    'total_count' => count($phones),
+                    'registered_count' => collect($clients)->where('is_registered', true)->count(),
+                    'unregistered_count' => collect($clients)->where('is_registered', false)->count(),
+                ]
+            );
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get client info from 1C', [
+                'phones' => $request->phones,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return new ApiJsonResponse(
+                httpCode: 500,
+                ok: false,
+                message: 'Ошибка при получении информации о клиентах: ' . $e->getMessage()
             );
         }
     }

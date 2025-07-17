@@ -145,6 +145,28 @@ class BonusService
                 throw new Exception('Недостаточно бонусов');
             }
 
+            // Проверяем, что указан parent_id_sell (обязательно для списания)
+            if (!$parentIdSell) {
+                throw new Exception('Необходимо указать parent_id_sell для списания бонусов');
+            }
+
+            // Проверяем лимит списания по чеку (максимум 30% от стоимости чека)
+            $originalBonus = Bonus::where('user_id', $user->id)
+                ->where('id_sell', $parentIdSell)
+                ->where('type', 'regular')
+                ->where('amount', '>', 0)
+                ->first();
+
+            if (!$originalBonus) {
+                throw new Exception("Исходный чек покупки с ID {$parentIdSell} не найден");
+            }
+
+            $maxDebitAmount = $originalBonus->purchase_amount * 0.3; // 30% от стоимости чека
+            
+            if ($amount > $maxDebitAmount) {
+                throw new Exception("Сумма списания превышает максимально допустимую (30% от стоимости чека). Максимум: " . (int)$maxDebitAmount . " бонусов");
+            }
+
             $promotionalBonuses = $this->getActivePromotionalBonuses($user);
             $promotionalAmount = $promotionalBonuses->sum('amount');
 
@@ -162,15 +184,13 @@ class BonusService
                 'user_id' => $user->id,
                 'amount' => -$amount, // полная сумма списания
                 'type' => 'regular',
-                'status' => 'show-not-calc'
+                'status' => 'show-not-calc',
+                'parent_id_sell' => $parentIdSell // всегда указываем parent_id_sell
             ];
             
-            // Добавляем поля чека если они переданы
+            // Добавляем id_sell если передан
             if ($idSell) {
                 $bonusData['id_sell'] = $idSell;
-            }
-            if ($parentIdSell) {
-                $bonusData['parent_id_sell'] = $parentIdSell;
             }
 
             Bonus::create($bonusData);
@@ -230,7 +250,13 @@ class BonusService
     public function getBonusHistory(User $user): BonusCollection
     {
         $bonuses = $user->bonuses()
-            ->whereIn('status', ['show-and-calc', 'show-not-calc'])
+            ->where(function ($query) {
+                $query->where('status', 'show-and-calc')
+                    ->orWhere(function ($subQuery) {
+                        $subQuery->where('status', 'show-not-calc')
+                            ->where('type', '!=', 'promotional'); // Исключаем списанные акционные бонусы
+                    });
+            })
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -355,11 +381,13 @@ class BonusService
                 ->first();
 
             if ($existingRefund) {
-                // Если возврат уже был, ищем связанную запись возврата списанных бонусов
+                // Если возврат уже был, проверяем корректность parent_id_sell
+                if (!$existingRefund->parent_id_sell || $existingRefund->parent_id_sell !== $parentReceiptId) {
+                    throw new \Exception("Возврат уже был, но parent_id_sell не совпадает или отсутствует. Проверьте корректность возврата.");
+                }
                 $existingDebitRefund = Bonus::where('user_id', $user->id)
                     ->where('id_sell', $refundReceiptId . '_DEBIT_REFUND')
                     ->first();
-                    
                 return [
                     'refund_bonus' => $existingRefund,
                     'returned_debit_amount' => $existingDebitRefund ? $existingDebitRefund->amount : 0
@@ -374,7 +402,7 @@ class BonusService
                 ->first();
 
             if (!$originalBonus) {
-                throw new Exception("Исходный чек продажи с ID {$parentReceiptId} не найден для данного пользователя");
+                throw new \Exception("Исходный чек продажи с ID {$parentReceiptId} не найден для данного пользователя");
             }
 
             // Рассчитываем уже возвращенную сумму по данному чеку

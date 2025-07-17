@@ -70,13 +70,18 @@ class BonusServiceTest extends TestCase
     public function test_debit_bonus_processes_and_sends_notification()
     {
         $user = User::factory()->create();
+        
+        // Создаем исходный чек покупки
         $user->bonuses()->create([
             'amount' => 100,
             'type' => 'regular',
-            'status' => 'show-and-calc'
+            'status' => 'show-and-calc',
+            'id_sell' => 'PARENT_RECEIPT_123',
+            'purchase_amount' => 1000,
         ]);
         $user->bonus_amount = 100;
         $user->save();
+        
         $this->mockPushService->shouldReceive('send')
             ->once()
             ->with(
@@ -84,12 +89,16 @@ class BonusServiceTest extends TestCase
                 NotificationType::BONUS_DEBIT,
                 Mockery::any()
             );
-        $this->service->debitBonus($user, 50, 'TEST_DEBIT_' . time());
+        
+        $this->service->debitBonus($user, 50, 'TEST_DEBIT_' . time(), 'PARENT_RECEIPT_123');
+        
         $this->assertDatabaseHas('bonuses', [
             'user_id' => $user->id,
             'amount' => -50,
-            'type' => 'regular'
+            'type' => 'regular',
+            'parent_id_sell' => 'PARENT_RECEIPT_123'
         ]);
+        
         $user->refresh();
         $this->assertEquals(50, $user->bonus_amount);
     }
@@ -99,6 +108,16 @@ class BonusServiceTest extends TestCase
         $user = User::factory()->create();
         $earlierExpiry = Carbon::now()->addDays(10);
         $laterExpiry = Carbon::now()->addDays(20);
+        
+        // Создаем исходный чек покупки
+        $user->bonuses()->create([
+            'amount' => 100,
+            'type' => 'regular',
+            'status' => 'show-and-calc',
+            'id_sell' => 'PARENT_RECEIPT_123',
+            'purchase_amount' => 1000,
+        ]);
+        
         Bonus::factory()->create([
             'user_id' => $user->id,
             'amount' => 50,
@@ -113,13 +132,10 @@ class BonusServiceTest extends TestCase
             'expires_at' => $earlierExpiry,
             'status' => 'show-and-calc'
         ]);
-        $user->bonuses()->create([
-            'amount' => 100,
-            'type' => 'regular',
-            'status' => 'show-and-calc'
-        ]);
+        
         $user->bonus_amount = 200;
         $user->save();
+        
         $this->mockPushService->shouldReceive('send')
             ->once()
             ->with(
@@ -127,19 +143,24 @@ class BonusServiceTest extends TestCase
                 NotificationType::BONUS_DEBIT,
                 Mockery::any()
             );
-        $this->service->debitBonus($user, 120, 'TEST_DEBIT_' . time());
+        
+        $this->service->debitBonus($user, 120, 'TEST_DEBIT_' . time(), 'PARENT_RECEIPT_123');
+        
         $this->assertDatabaseHas('bonuses', [
             'user_id' => $user->id,
             'amount' => -120,
             'type' => 'regular',
-            'status' => 'show-not-calc'
+            'status' => 'show-not-calc',
+            'parent_id_sell' => 'PARENT_RECEIPT_123'
         ]);
         $this->assertDatabaseHas('bonuses', [
             'user_id' => $user->id,
             'amount' => -20,
             'type' => 'regular',
-            'status' => 'calc-not-show'
+            'status' => 'calc-not-show',
+            'parent_id_sell' => 'PARENT_RECEIPT_123'
         ]);
+        
         $user->refresh();
         $this->assertEquals(80, $user->bonus_amount);
     }

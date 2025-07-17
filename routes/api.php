@@ -25,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/bonus/promotion', [BonusController::class, 'promotion']);
         Route::post('/bonus/refund', [BonusController::class, 'refund']);
         Route::post('/1c/register', [OneCController::class, 'register']);
+        Route::post('/1c/client-info', [OneCController::class, 'getClientInfo']);
     });
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');

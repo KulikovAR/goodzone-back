@@ -25,7 +25,7 @@ class BonusController extends Controller
 
     public function info(): ApiJsonResponse
     {
-        $user = Auth::user();
+        $user = User::find(Auth::id());
 
         $bonusInfo = $this->bonusService->getBonusInfo($user);
 
@@ -75,6 +75,33 @@ class BonusController extends Controller
                 $request->parent_id_sell
             );
         } catch (Exception $exception) {
+            // Проверяем, является ли ошибка связанной с лимитом списания
+            if (str_contains($exception->getMessage(), 'Сумма списания превышает максимально допустимую')) {
+                return new ApiJsonResponse(
+                    400,
+                    false,
+                    $exception->getMessage()
+                );
+            }
+            
+            // Проверяем, является ли ошибка связанной с отсутствием parent_id_sell
+            if (str_contains($exception->getMessage(), 'Необходимо указать parent_id_sell')) {
+                return new ApiJsonResponse(
+                    400,
+                    false,
+                    $exception->getMessage()
+                );
+            }
+            
+            // Проверяем, является ли ошибка связанной с отсутствием исходного чека
+            if (str_contains($exception->getMessage(), 'не найден')) {
+                return new ApiJsonResponse(
+                    400,
+                    false,
+                    $exception->getMessage()
+                );
+            }
+            
             return new ApiJsonResponse(
                 400,
                 false,
@@ -82,9 +109,17 @@ class BonusController extends Controller
             );
         }
 
-
+        // Получаем обновленную информацию о бонусах пользователя
+        $bonusInfo = $this->bonusService->getBonusInfo($user);
+        
         return new ApiJsonResponse(
-            message: 'Бонусы списаны'
+            message: 'Бонусы списаны',
+            data: [
+                'debit_amount' => (int)$request->debit_amount,
+                'remaining_balance' => (int)$bonusInfo['bonus_amount'],
+                'debit_receipt_id' => $request->id_sell,
+                'parent_receipt_id' => $request->parent_id_sell
+            ]
         );
     }
 
@@ -103,6 +138,15 @@ class BonusController extends Controller
             $refundBonus = $refundResult['refund_bonus'];
             $returnedDebitAmount = $refundResult['returned_debit_amount'];
 
+            // Если parent_id_sell отсутствует, это ошибка!
+            if (!$refundBonus->parent_id_sell) {
+                return new ApiJsonResponse(
+                    400,
+                    false,
+                    'Ошибка возврата: исходный чек не найден или возврат некорректен.'
+                );
+            }
+
             return new ApiJsonResponse(
                 message: 'Бонусы возвращены (возврат товара)',
                 data: [
@@ -113,7 +157,7 @@ class BonusController extends Controller
                     'refund_amount' => (int)$request->refund_amount
                 ]
             );
-        } catch (Exception $exception) {
+        } catch (\Exception $exception) {
             return new ApiJsonResponse(
                 400,
                 false,
@@ -132,8 +176,16 @@ class BonusController extends Controller
             Carbon::parse($request->expiry_date)
         );
 
+        // Получаем обновленную информацию о бонусах пользователя
+        $bonusInfo = $this->bonusService->getBonusInfo($user);
+        
         return new ApiJsonResponse(
-            message: 'Акционные бонусы начислены'
+            message: 'Акционные бонусы начислены',
+            data: [
+                'bonus_amount' => (int)$bonus->amount,
+                'expires_at' => $bonus->expires_at?->toISOString(),
+                'total_balance' => (int)$bonusInfo['bonus_amount']
+            ]
         );
     }
 

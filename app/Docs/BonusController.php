@@ -70,7 +70,13 @@ class BonusController
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="ok", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Бонусы начислены")
+     *             @OA\Property(property="message", type="string", example="Бонусы начислены"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="calculated_bonus_amount", type="integer", example=50, description="Рассчитанная сумма начисленных бонусов"),
+     *                 @OA\Property(property="user_level", type="string", example="bronze", enum={"bronze", "silver", "gold"}, description="Текущий уровень пользователя"),
+     *                 @OA\Property(property="cashback_percent", type="integer", example=5, description="Процент кешбэка для текущего уровня"),
+     *                 @OA\Property(property="receipt_id", type="string", example="RECEIPT_123456", description="ID чека продажи")
+     *             )
      *         )
      *     ),
      *
@@ -120,18 +126,18 @@ class BonusController
      * @OA\Post(
      *     path="/bonus/debit",
      *     summary="Списание бонусов",
-     *     description="Списывает бонусы у пользователя",
+     *     description="Списывает бонусы у пользователя. Обязательно требует указания parent_id_sell для привязки к исходному чеку покупки. Сумма списания ограничена 30% от стоимости исходного чека.",
      *     tags={"Bonus"},
      *     security={{"api": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *             type="object",
-     *             required={"phone", "debit_amount", "id_sell"},
+     *             required={"phone", "debit_amount", "id_sell", "parent_id_sell"},
      *             @OA\Property(property="phone", type="string", example="+79991234567", description="Номер телефона пользователя"),
      *             @OA\Property(property="debit_amount", type="number", example=50, description="Сумма списываемых бонусов"),
      *             @OA\Property(property="id_sell", type="string", example="DEBIT_123456", description="ID чека списания от 1С"),
-     *             @OA\Property(property="parent_id_sell", type="string", example="RECEIPT_123456", description="ID родительского чека (опционально)")
+     *             @OA\Property(property="parent_id_sell", type="string", example="RECEIPT_123456", description="ID исходного чека покупки (обязательно)")
      *         )
      *     ),
      *
@@ -141,17 +147,29 @@ class BonusController
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="ok", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Бонусы списаны")
+     *             @OA\Property(property="message", type="string", example="Бонусы списаны"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="debit_amount", type="integer", example=50, description="Сумма списанных бонусов"),
+     *                 @OA\Property(property="remaining_balance", type="integer", example=150, description="Оставшийся баланс бонусов"),
+     *                 @OA\Property(property="debit_receipt_id", type="string", example="DEBIT_123456", description="ID чека списания"),
+     *                 @OA\Property(property="parent_receipt_id", type="string", example="RECEIPT_123456", description="ID исходного чека покупки")
+     *             )
      *         )
      *     ),
      *
      *     @OA\Response(
      *         response=400,
-     *         description="Недостаточно бонусов",
+     *         description="Ошибка списания",
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="ok", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Недостаточно бонусов")
+     *             @OA\Property(property="message", type="string", example="Недостаточно бонусов"),
+     *             @OA\Property(property="examples", type="object",
+     *                 @OA\Property(property="insufficient_bonuses", type="string", example="Недостаточно бонусов"),
+     *                 @OA\Property(property="missing_parent_id", type="string", example="Необходимо указать parent_id_sell для списания бонусов"),
+     *                 @OA\Property(property="receipt_not_found", type="string", example="Исходный чек покупки с ID RECEIPT_123456 не найден"),
+     *                 @OA\Property(property="limit_exceeded", type="string", example="Сумма списания превышает максимально допустимую (30% от стоимости чека). Максимум: 300 бонусов")
+     *             )
      *         )
      *     ),
      *
@@ -170,6 +188,24 @@ class BonusController
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\User]")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Ошибка валидации",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 @OA\Property(
+     *                     property="parent_id_sell",
+     *                     type="array",
+     *                     @OA\Items(type="string", example="The parent id sell field is required.")
+     *                 )
+     *             )
      *         )
      *     )
      * )
@@ -273,7 +309,12 @@ class BonusController
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="ok", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Акционные бонусы начислены")
+     *             @OA\Property(property="message", type="string", example="Акционные бонусы начислены"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="bonus_amount", type="integer", example=200, description="Сумма начисленных акционных бонусов"),
+     *                 @OA\Property(property="expires_at", type="string", format="date-time", example="2024-12-31T23:59:59", description="Дата истечения бонусов"),
+     *                 @OA\Property(property="total_balance", type="integer", example=350, description="Общий баланс бонусов после начисления")
+     *             )
      *         )
      *     ),
      *
