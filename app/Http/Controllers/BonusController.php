@@ -99,10 +99,10 @@ class BonusController extends Controller
                 // Получаем обновленную информацию о бонусах пользователя
                 $bonusInfo = $this->bonusService->getBonusInfo($user);
                 return [
-                    'debit_amount' => (int)$operation->debit_amount,
+                    'debit_amount' => (int)$operation['debit_amount'],
                     'remaining_balance' => (int)$bonusInfo['bonus_amount'],
-                    'debit_receipt_id' => $operation->id_sell,
-                    'parent_receipt_id' => $operation->parent_id_sell
+                    'debit_receipt_id' => $operation['id_sell'],
+                    'parent_receipt_id' => $operation['parent_id_sell']
                 ];
             }
         );

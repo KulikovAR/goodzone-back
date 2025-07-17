@@ -205,7 +205,7 @@ class BonusTest extends TestCase
             'phone' => $user->phone,
             'debit_amount' => 300, // 30% от 1000 (purchase_amount)
             'id_sell' => 'TEST_DEBIT_' . time(),
-            'parent_id_sell' => 'TEST_DEBIT_PARENT_' . time(),
+            'parent_id_sell' => 'PARENT_RECEIPT_123',
             'timestamp' => now()->toDateTimeString()
         ]]);
 
@@ -784,12 +784,14 @@ class BonusTest extends TestCase
         $oneCUser = User::factory()->oneC()->create();
         $token = $oneCUser->createToken('test-token')->plainTextToken;
 
-        foreach ($users as $user) {
+        foreach ($users as $i => $user) {
             Bonus::create([
                 'user_id' => $user->id,
                 'amount' => 1000,
                 'type' => 'regular',
                 'status' => 'show-and-calc',
+                'id_sell' => 'PARENT_RECEIPT_' . $i,
+                'purchase_amount' => 1000,
             ]);
 
             $user->bonus_amount = 1000;
@@ -799,9 +801,9 @@ class BonusTest extends TestCase
         $payload = $users->map(function ($user, $index) {
             return [
                 'phone' => $user->phone,
-                'debit_amount' => 500,
+                'debit_amount' => 300,
                 'id_sell' => 'BATCH_DEBIT_' . $index . '_' . time(),
-                'parent_id_sell' => 'BATCH_PARENT_' . $index . '_' . time(),
+                'parent_id_sell' => 'PARENT_RECEIPT_' . $index,
                 'timestamp' => now()->toDateTimeString(),
             ];
         })->toArray();
@@ -819,7 +821,7 @@ class BonusTest extends TestCase
         foreach ($users as $user) {
             $this->assertDatabaseHas('bonuses', [
                 'user_id' => $user->id,
-                'amount' => -500,
+                'amount' => -300,
                 'type' => 'regular',
             ]);
         }
