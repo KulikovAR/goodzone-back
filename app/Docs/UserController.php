@@ -29,7 +29,8 @@ class UserController
      *                 @OA\Property(property="city", type="string", example="Moscow"),
      *                 @OA\Property(property="birthday", type="string", format="date", example="1990-01-01", nullable=true),
      *                 @OA\Property(property="children", type="string", example="2", nullable=true),
-     *                 @OA\Property(property="marital_status", type="string", example="married", nullable=true)
+     *                 @OA\Property(property="marital_status", type="string", example="married", nullable=true),
+     *                 @OA\Property(property="verified", type="boolean", example=true, description="Показывает заполнены ли все обязательные поля профиля")
      *             )
      *         )
      *     ),
