@@ -12,14 +12,17 @@ use Carbon\Carbon;
 
 class ExpoNotificationService
 {
-    public function send(User $user, NotificationType $type, array $data): void
+    public function send(User $user, NotificationType|Notification $notification, ?array $data = null): void
     {
         if ($user->deviceTokens->isEmpty()) {
             return;
         }
 
-        $notification = $this->createNotification($type, $data);
-        $user->notify($notification);
+        $notificationObject = $notification instanceof Notification
+            ? $notification
+            : $this->createNotification($notification, $data);
+
+        $user->notify($notificationObject);
     }
 
     private function createNotification(NotificationType $type, array $data): Notification
