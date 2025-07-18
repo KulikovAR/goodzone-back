@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BonusController;
 use App\Http\Controllers\OneCController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\V1\SearchCityController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['guest'])->group(function () {
@@ -18,6 +19,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bonus/promotional-history', [BonusController::class, 'promotionalHistory']);
     Route::put('/user/update', [UserController::class, 'update']);
     Route::get('/user', [UserController::class, 'show']);
+    Route::get('v1/search-cities', SearchCityController::class);
 
     Route::middleware('Check1cRole')->group(function () {
         Route::post('/bonus/credit', [BonusController::class, 'credit']);
