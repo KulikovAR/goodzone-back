@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\PushNotificationHistory;
 use App\Enums\NotificationType;
+use NotificationChannels\Expo\ExpoChannel;
 use NotificationChannels\Expo\ExpoMessage;
 use Illuminate\Notifications\Notification;
 use Carbon\Carbon;
@@ -62,5 +64,47 @@ class ExpoNotificationService
                 };
             }
         };
+    }
+
+    public function broadcastToAllUsers(NotificationType|Notification $notification, ?array $data = null): void
+    {
+        $users = User::whereHas('deviceTokens')->get();
+
+        foreach ($users as $user) {
+            $this->send($user, $notification, $data);
+        }
+    }
+
+    public function broadcastCustomMessage(string $title, string $message): void
+    {
+        $customNotification = new class($title, $message) extends Notification {
+            public function __construct(
+                private readonly string $title,
+                private readonly string $message
+            )
+            {
+            }
+
+            public function via($notifiable): array
+            {
+                return [ExpoChannel::class];
+            }
+
+            public function toExpo($notifiable): ExpoMessage
+            {
+                return ExpoMessage::create()
+                    ->title($this->title)
+                    ->body($this->message)
+                    ->data(['type' => 'custom']);
+            }
+        };
+
+        PushNotificationHistory::create([
+            'title' => $title,
+            'message' => $message,
+            'type' => 'custom',
+        ]);
+
+        $this->broadcastToAllUsers($customNotification);
     }
 }
