@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasRefreshToken;
+use App\Traits\HasVerifiedFields;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,7 +18,7 @@ use App\Enums\UserRole;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasApiTokens, HasFactory, HasRefreshToken, HasRoles, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, HasRefreshToken, HasRoles, Notifiable, SoftDeletes, HasVerifiedFields;
 
     /**
      * The attributes that are mass assignable.

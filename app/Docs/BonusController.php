@@ -205,7 +205,13 @@ class BonusController
      *                 @OA\Items(
      *                     type="object",
      *                     @OA\Property(property="id", type="string", example="DEBIT_123456"),
-     *                     @OA\Property(property="success", type="boolean", example=true)
+     *                     @OA\Property(property="success", type="boolean", example=true),
+     *                     @OA\Property(property="data", type="object",
+     *                         @OA\Property(property="debit_amount", type="integer", example=300),
+     *                         @OA\Property(property="remaining_balance", type="integer", example=700),
+     *                         @OA\Property(property="debit_receipt_id", type="string", example="DEBIT_123456"),
+     *                         @OA\Property(property="parent_receipt_id", type="string", example="PARENT_RECEIPT_123")
+     *                     )
      *                 )
      *             )
      *         )
@@ -225,7 +231,13 @@ class BonusController
      *                         @OA\Schema(
      *                             type="object",
      *                             @OA\Property(property="id", type="string", example="DEBIT_123456"),
-     *                             @OA\Property(property="success", type="boolean", example=true)
+     *                             @OA\Property(property="success", type="boolean", example=true),
+     *                             @OA\Property(property="data", type="object",
+     *                                 @OA\Property(property="debit_amount", type="integer", example=300),
+     *                                 @OA\Property(property="remaining_balance", type="integer", example=700),
+     *                                 @OA\Property(property="debit_receipt_id", type="string", example="DEBIT_123456"),
+     *                                 @OA\Property(property="parent_receipt_id", type="string", example="PARENT_RECEIPT_123")
+     *                             )
      *                         ),
      *                         @OA\Schema(
      *                             type="object",
@@ -244,7 +256,39 @@ class BonusController
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="ok", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Не удалось списать бонусы")
+     *             @OA\Property(property="message", type="string", example="Не удалось списать бонусы"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     oneOf={
+     *                         @OA\Schema(
+     *                             type="object",
+     *                             @OA\Property(property="id", type="string", example="DEBIT_123456"),
+     *                             @OA\Property(property="success", type="boolean", example=false),
+     *                             @OA\Property(property="error", type="string", example="Недостаточно бонусов")
+     *                         ),
+     *                         @OA\Schema(
+     *                             type="object",
+     *                             @OA\Property(property="id", type="string", example="DEBIT_123456"),
+     *                             @OA\Property(property="success", type="boolean", example=false),
+     *                             @OA\Property(property="error", type="string", example="Необходимо указать parent_id_sell для списания бонусов")
+     *                         ),
+     *                         @OA\Schema(
+     *                             type="object",
+     *                             @OA\Property(property="id", type="string", example="DEBIT_123456"),
+     *                             @OA\Property(property="success", type="boolean", example=false),
+     *                             @OA\Property(property="error", type="string", example="Исходный чек покупки с ID RECEIPT_123456 не найден")
+     *                         ),
+     *                         @OA\Schema(
+     *                             type="object",
+     *                             @OA\Property(property="id", type="string", example="DEBIT_123456"),
+     *                             @OA\Property(property="success", type="boolean", example=false),
+     *                             @OA\Property(property="error", type="string", example="Сумма списания превышает максимально допустимую (30% от стоимости чека). Максимум: 300 бонусов")
+     *                         )
+     *                     }
+     *                 )
+     *             ),
      *         )
      *     ),
      *     @OA\Response(
@@ -465,12 +509,20 @@ class BonusController
      *             type="object",
      *             @OA\Property(property="ok", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Акционные бонусы начислены"),
-     *             @OA\Property(property="data", type="array",
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
      *                 @OA\Items(
      *                     type="object",
-     *                     required={"id", "success", "data"},
-     *                     @OA\Property(property="id", type="string", example="PROMO_123456", description="ID операции (id_sell или сгенерированный)"),
+     *                     @OA\Property(property="id", type="string", example="PROMO_BATCH_0_1752841009"),
      *                     @OA\Property(property="success", type="boolean", example=true),
+     *                     @OA\Property(
+     *                         property="data",
+     *                         type="object",
+     *                         @OA\Property(property="bonus_amount", type="integer", example=100),
+     *                         @OA\Property(property="expires_at", type="string", format="date-time", example="2025-08-17T00:00:00.000000Z"),
+     *                         @OA\Property(property="total_balance", type="integer", example=100)
+     *                     )
      *                 )
      *             )
      *         )
@@ -483,7 +535,9 @@ class BonusController
      *             type="object",
      *             @OA\Property(property="ok", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Часть акционных бонусов начислена"),
-     *             @OA\Property(property="data", type="array",
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
      *                 @OA\Items(
      *                     oneOf={
      *                         @OA\Schema(
@@ -491,6 +545,13 @@ class BonusController
      *                             required={"id", "success", "data"},
      *                             @OA\Property(property="id", type="string", example="PROMO_123456"),
      *                             @OA\Property(property="success", type="boolean", example=true),
+     *                             @OA\Property(
+     *                                 property="data",
+     *                                 type="object",
+     *                                 @OA\Property(property="bonus_amount", type="number", example=100),
+     *                                 @OA\Property(property="expires_at", type="string", format="date-time", example="2025-12-31T23:59:59Z"),
+     *                                 @OA\Property(property="total_balance", type="number", example=500)
+     *                             )
      *                         ),
      *                         @OA\Schema(
      *                             type="object",
@@ -511,7 +572,17 @@ class BonusController
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="ok", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Не удалось начислить акционные бонусы")
+     *             @OA\Property(property="message", type="string", example="Не удалось начислить акционные бонусы"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="string", example="PROMO_789012"),
+     *                     @OA\Property(property="success", type="boolean", example=false),
+     *                     @OA\Property(property="error", type="string", example="Неверный формат данных")
+     *                 )
+     *             )
      *         )
      *     ),
      *

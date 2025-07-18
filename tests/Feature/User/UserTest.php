@@ -304,4 +304,44 @@ class UserTest extends TestCase
             'profile_completed_bonus_given' => false
         ]);
     }
+
+    public function test_user_with_all_required_fields_returns_verified_true()
+    {
+        $user = User::factory()->create([
+            'name' => 'John Doe',
+            'phone' => '+79991234567',
+            'birthday' => '1990-01-01',
+            'gender' => 'male',
+            'city' => 'Moscow'
+        ]);
+
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->getJson('/api/user');
+
+        $response->assertOk()
+            ->assertJsonPath('data.verified', true);
+    }
+
+    public function test_user_with_missing_required_field_returns_verified_false()
+    {
+        $user = User::factory()->create([
+            'name' => 'John Doe',
+            'phone' => '+79991234567',
+            'birthday' => '1990-01-01',
+            'gender' => 'male'
+            // city is missing
+        ]);
+
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token
+        ])->getJson('/api/user');
+
+        $response->assertOk()
+            ->assertJsonPath('data.verified', false);
+    }
 }
